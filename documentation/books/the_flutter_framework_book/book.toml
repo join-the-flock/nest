@@ -1,0 +1,6 @@
+[book]
+authors = ["Artur Assis Alves"]
+language = "en"
+multilingual = false
+src = "src"
+title = "The Flutter Framework Book"
