@@ -16,13 +16,18 @@ mdbook build
 ```
 
 ## Contribute
-The book structure is very simple: 
+The structure of the book is very simple: 
 ```
 the_flutter_framework_book/
 ├───book/
 ├───src/
-│   ├───<chapter1>.md
-│   ├───<chapter2>.md
+|   ├───00-<mod1>/
+|   │   ├───<file1>.md
+|   |   ├─...
+|   ├───01-<mod2>/
+|   │   ├───<file2>.md
+|   |   ├─...
+│   ├───<fileN>.md
 │   ├─...
 │   └───SUMMARY.md
 ├───.gitignore
@@ -30,7 +35,7 @@ the_flutter_framework_book/
 └───README.md
 ```
 - `book/`: The directory that contains the build. It is ignored by Git.
-- `src/`: The directory that contains the book content. Each chapter is a markdown file with a name different from `SUMMARY.md`.
+- `src/`: The directory that contains the book content. Each chapter is a markdown file with a name different from `SUMMARY.md`. Usually, it will be inside some module folder.
 - `SUMMARY.md`: The markdown file that contains the summary of the book. Each chapter is added as a markdown link in a tree structure.
 - `.gitignore`: Contains files/directories ignored by Git.
 - `book.toml`: Contains configurations and metadata about the book.
@@ -47,13 +52,14 @@ mdbook serve --open
 ```md
 # Summary
 
-- [Chapter 1](./chap1.md)
-    - [Sub-chapter 1](./sub_chap1.md)
-- [Chapter 2](./chap2.md)
-- [Chapter 3](./chap3.md)
+- [Chapter 1](./mod1/chap1.md)
+    - [Sub-chapter 1](./mod1/sub_chap1.md)
+- [Chapter 2](./mod2/chap2.md)
+- [Chapter 3](./mod2/chap3.md)
 ```
 
-- To edit the content of **Chapter 2**, for example, you need to edit the file: `the_flutter_framework_book/src/chap2.md`. 
+- To edit the content of **Chapter 2**, for example, you need to edit the file: 
+`the_flutter_framework_book/src/mod1/chap2.md`. 
 
 
 ### Change the structure of the book
