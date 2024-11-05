@@ -9,7 +9,6 @@
 
 # Elementary Steps
 
-- [Getting Started](./01-elementary_steps/00-getting_started.md)
 - [Configuring the Environment](./01-elementary_steps/01-configuring-the-environment.md) <!-- installing dart, other dependencies, configuring IDE, extensions, tools, etc -->
 - [Running Tests](./01-elementary_steps/02-running_tests.md)
 - [Building](./01-elementary_steps/03-building.md)
