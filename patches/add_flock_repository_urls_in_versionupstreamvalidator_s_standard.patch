@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Victor Eronmosele <victoreronmosele@gmail.com>
+Date: Thu, 5 Dec 2024 02:19:43 +0100
+Subject: Add Flock repository URLs in VersionUpstreamValidator's standard
+ remotes.
+
+This allows Flock to be upgraded using the `flutter upgrade` command.
+
+diff --git a/packages/flutter_tools/lib/src/version.dart b/packages/flutter_tools/lib/src/version.dart
+index 77ea1b13d0d468d7e7bda2375c490debcc0f00c9..c196b64d2493de9a40c5df65e196644cdbb5f34d 100644
+--- a/packages/flutter_tools/lib/src/version.dart
++++ b/packages/flutter_tools/lib/src/version.dart
+@@ -711,6 +711,9 @@ class VersionUpstreamValidator {
+     'https://github.com/flutter/flutter.git',
+     'git@github.com:flutter/flutter.git',
+     'ssh://git@github.com/flutter/flutter.git',
++    'https://github.com/join-the-flock/flock.git',
++    'git@github.com:join-the-flock/flock.git',
++    'ssh://git@github.com/join-the-flock/flock.git',
+   ];
+ 
+   // Strips ".git" suffix from a given string, preferably an url.
