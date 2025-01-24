@@ -1,8 +1,8 @@
-# This workflow runs once per day and recreates the Flock master branch with
-# latest history from Flutter's master branch.
+# This workflow runs once per day and recreates the Flock master, beta, and
+# stable branches with the latest history from Flutter.
 #
-# The Flock master branch is reconstituted by taking the most recent history of
-# Flutter's master branch, and then replaying all of Flock's changes on top.
+# The Flock branches are reconstituted by taking the most recent history of
+# Flutter's branches, and then replaying all of Flock's changes on top.
 # This replay is effectively a rebase, but each change is saved in a patch
 # file instead of the git log.
 
@@ -14,9 +14,11 @@ on:
 # Update these variables to fit your custom fork configuration.
 env:
   # The GitHub location of your Flutter fork.
+  # WARNING: THIS WORKFLOW WILL DESTROY HISTORY IN THIS REPO!!
   FLOCK_REPO: "join-the-flock/flock"
 
-  # A Personal Access Token (PAT) so that this action can create and force-push PRs.
+  # A Personal Access Token (PAT) so that this action can destroy and create
+  # history in the `FLOCK_REPO`.
   GITHUB_PAT: ${{ secrets.REPO_WORKFLOW_PAT }}
 
 name: daily-flock-rebase
@@ -27,7 +29,7 @@ jobs:
   rebase-flock-on-flutter_master:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Nest
+      - name: Checkout Nest (this repo)
         uses: actions/checkout@v4
         with:
           path: 'nest'
@@ -53,7 +55,7 @@ jobs:
 
           # Setup upstream to Flutter and fetch the latest from master.
           git remote add upstream https://github.com/flutter/flutter.git
-          git fetch upstream master --depth=0
+          git fetch upstream master
 
       - name: Delete master, recreate, replay Flock
         working-directory: nest/flock
@@ -92,8 +94,100 @@ jobs:
           # create a pull-requests containing the updates.
           gh auth login --with-token < token.txt
 
+          # Replace the previous Flock master branch with our updated branch.
           git push -f origin master
   
+  rebase-flock-on-flutter_beta:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Nest
+        uses: actions/checkout@v4
+        with:
+          path: 'nest'
+          fetch-depth: 0 # Checkout everything to get access to the tags
+          repository: ${{github.repository}}
+          # ref: ${{github.event.pull_request.head.ref}}
+          ref: beta
+          token: ${{ env.GITHUB_PAT }}
+
+      - name: Checkout Flock
+        uses: actions/checkout@v4
+        with:
+          path: 'nest/flock'
+          fetch-depth: 0 # Checkout everything to get access to the tags
+          repository: ${{ env.FLOCK_REPO }}
+          # ref: ${{ env.FLUTTER_BRANCH }}
+          ref: beta
+          token: ${{ env.GITHUB_PAT }}
+
+      - name: Fetch Flutter beta
+        working-directory: nest/flock
+        run: |
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
+
+          # Setup upstream to Flutter and fetch the latest from beta.
+          git remote add upstream https://github.com/flutter/flutter.git
+          git fetch upstream beta
+      
+      - name: Lookup beta tag
+        working-directory: nest/flock
+        run: |
+          # Lookup the tag that currently points to the beta branch. There
+          # should always be one.
+          echo "Fetching tags"
+          git fetch --tags --quiet
+
+          echo "Looking up beta tag"
+          TAG=$(git tag --points-at $(git rev-parse beta))
+
+          echo "Beta tag: $TAG"
+          echo "tag=$TAG" >> $GITHUB_ENV
+
+      - name: Delete beta, recreate, replay Flock
+        working-directory: nest/flock
+        run: |
+          # Checkout a temporary branch so we can manipulate beta.
+          git checkout -b temp
+
+          # Delete beta branch
+          git branch -D beta
+
+          # Get fresh version from Flutter.
+          git switch -c beta upstream/beta
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Apply Nest patches to Flock
+        run: |
+          echo "Apply patches..."
+          cd nest
+          ./tools/git-import-patches patches
+
+      - name: Apply current beta tag to Flock
+        working-directory: nest/flock
+        run: |
+          echo "Tagging latest beta commit (${{ env.tag }})..."
+          git tag -f -a ${{ env.tag }} -m "Flock ${{ env.tag }}"
+
+      - name: Force push beta branch to Flock
+        working-directory: nest/flock
+        run: |
+          # Store the PAT in a file that can be accessed by the
+          # GitHub CLI.
+          echo "$GITHUB_PAT" > token.txt
+
+          # Authorize GitHub CLI for the current repository and
+          # create a pull-requests containing the updates.
+          gh auth login --with-token < token.txt
+
+          # Replace the previous Flock beta branch with the updated one.
+          git push -f origin beta
+          git push -f origin ${{ env.tag }}
+
   rebase-flock-on-flutter_stable:
     runs-on: ubuntu-latest
     steps:
@@ -125,7 +219,21 @@ jobs:
 
           # Setup upstream to Flutter and fetch the latest from stable.
           git remote add upstream https://github.com/flutter/flutter.git
-          git fetch upstream stable --depth=0
+          git fetch upstream stable
+      
+      - name: Lookup stable tag
+        working-directory: nest/flock
+        run: |
+          # Lookup the tag that currently points to the stable branch. There
+          # should always be one.
+          echo "Fetching tags"
+          git fetch --tags --quiet
+
+          echo "Looking up stable tag"
+          TAG=$(git tag --points-at $(git rev-parse stable))
+
+          echo "Stable tag: $TAG"
+          echo "tag=$TAG" >> $GITHUB_ENV
 
       - name: Delete stable, recreate, replay Flock
         working-directory: nest/flock
@@ -139,9 +247,6 @@ jobs:
           # Get fresh version from Flutter.
           git switch -c stable upstream/stable
 
-          # Switch back to the refreshed stable branch.
-          git checkout stable
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -152,6 +257,12 @@ jobs:
           echo "Apply patches..."
           cd nest
           ./tools/git-import-patches patches
+
+      - name: Apply current stable tag to Flock
+        working-directory: nest/flock
+        run: |
+          echo "Tagging latest stable commit (${{ env.tag }})..."
+          git tag -f -a ${{ env.tag }} -m "Flock ${{ env.tag }}"
 
       - name: Force push stable branch to Flock
         working-directory: nest/flock
@@ -164,4 +275,6 @@ jobs:
           # create a pull-requests containing the updates.
           gh auth login --with-token < token.txt
 
+          # Replace the previous Flock stable branch with the updated one.
           git push -f origin stable
+          git push -f origin ${{ env.tag }}
