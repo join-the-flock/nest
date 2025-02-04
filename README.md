@@ -1,10 +1,10 @@
 # Nest
 Tools for hatching new Flutters.
 
-Learn more at https://flutterfoundation.dev.
+Learn more at https://getflocked.dev.
 
 ## Filing Issues
-The Flutter Foundation uses this repository to file issues for both Flock and Nest.
+This repository is used to file issues for both Flock and Nest.
 
 If you're having any issues with Flock or Nest, or if you have a feature request, please file a ticket under "Issues".
 
