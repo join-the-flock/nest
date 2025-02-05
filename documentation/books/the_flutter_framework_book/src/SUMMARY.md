@@ -10,11 +10,12 @@
 # Elementary Steps
 
 - [Configuring the Environment](./01-elementary_steps/01-configuring-the-environment.md) <!-- installing dart, other dependencies, configuring IDE, extensions, tools, etc -->
-- [Running Tests](./01-elementary_steps/02-running_tests.md)
-- [Building](./01-elementary_steps/03-building.md)
-- [Running the Framework](./01-elementary_steps/04-running.md)
-- [Debugging](./01-elementary_steps/05-debugging.md)
-- [Profiling](./01-elementary_steps/06-profiling.md)
+- [Creating the HelloWorld Widget](./01-elementary_steps/02-creating-the-hello-world-widget.md)
+- [Running Tests](./01-elementary_steps/03-running_tests.md)
+- [Building](./01-elementary_steps/04-building.md)
+- [Running the Framework](./01-elementary_steps/05-running.md)
+- [Debugging](./01-elementary_steps/06-debugging.md)
+- [Profiling](./01-elementary_steps/07-profiling.md)
 
 # Framework High Level Details
 
