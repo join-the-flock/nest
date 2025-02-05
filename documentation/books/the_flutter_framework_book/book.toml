@@ -1,0 +1,6 @@
+[book]
+authors = ["Flutter Foundation"]
+language = "en"
+multilingual = false
+src = "src"
+title = "The Flutter Framework Book"
