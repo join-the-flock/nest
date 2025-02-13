@@ -1,0 +1,272 @@
+name: Build Flutter Engine (Monorepo)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # -------------------------------------------------------------------
+  # 1) Build on Linux
+  # -------------------------------------------------------------------
+  build-linux:
+    name: Build Engine on Linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_mode: [debug, profile, release]
+    steps:
+      - name: Check out Flutter repo
+        uses: actions/checkout@v3
+        with:
+          # If your repo still uses submodules, you may need this:
+          # submodules: true
+          # fetch-depth: 0 (if you need full history)
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl python3 python3-pip python3-setuptools git clang cmake ninja-build pkg-config
+          
+          # Clone depot_tools to get gclient, gn, ninja, etc.
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git $HOME/depot_tools
+          echo "::add-path::$HOME/depot_tools"
+
+      - name: Sync dependencies (gclient sync)
+        working-directory: engine
+        run: |
+          # Run gclient sync from within the engine folder
+          gclient sync
+
+      - name: Generate GN build files
+        working-directory: engine
+        run: |
+          # We'll name our build output directory based on mode + platform
+          gn gen out/linux_${{ matrix.build_mode }} \
+            --args="is_debug=${{ matrix.build_mode == 'debug' }} \
+                    is_profile=${{ matrix.build_mode == 'profile' }} \
+                    target_os=\"linux\""
+
+      - name: Build flutter engine
+        working-directory: engine
+        run: |
+          ninja -C out/linux_${{ matrix.build_mode }} flutter
+
+
+  # -------------------------------------------------------------------
+  # 2) Build on Windows
+  # -------------------------------------------------------------------
+  build-windows:
+    name: Build Engine on Windows
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        build_mode: [debug, profile, release]
+    steps:
+      - name: Check out Flutter repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          choco install python --version=3.9.0 -y
+          choco install visualstudio2022buildtools -y
+          choco install cmake ninja git -y
+          
+          # Set up depot_tools
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git C:\depot_tools
+          echo "C:\\depot_tools" >> $env:GITHUB_PATH
+
+      - name: Sync dependencies (gclient sync)
+        run: |
+          cd engine
+          gclient sync
+
+      - name: Generate GN build files
+        run: |
+          cd engine
+          gn gen out\windows_${{ matrix.build_mode }} --args="is_debug=${{ matrix.build_mode == 'debug' }} is_profile=${{ matrix.build_mode == 'profile' }} target_os=\"win\""
+
+      - name: Build flutter engine
+        run: |
+          cd engine
+          ninja -C out\windows_${{ matrix.build_mode }} flutter
+
+
+  # -------------------------------------------------------------------
+  # 3) Build on macOS (and optionally iOS)
+  # -------------------------------------------------------------------
+  build-macos:
+    name: Build Engine on macOS
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        build_mode: [debug, profile, release]
+    steps:
+      - name: Check out Flutter repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install python git ninja cmake
+          
+          # depot_tools
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git $HOME/depot_tools
+          echo "::add-path::$HOME/depot_tools"
+
+      - name: Sync dependencies (gclient sync)
+        working-directory: engine
+        run: |
+          gclient sync
+
+      - name: Generate GN build files
+        working-directory: engine
+        run: |
+          gn gen out/mac_${{ matrix.build_mode }} \
+            --args="is_debug=${{ matrix.build_mode == 'debug' }} \
+                    is_profile=${{ matrix.build_mode == 'profile' }} \
+                    target_os=\"mac\""
+
+      - name: Build flutter engine
+        working-directory: engine
+        run: |
+          ninja -C out/mac_${{ matrix.build_mode }} flutter
+
+
+  # -------------------------------------------------------------------
+  # (Optional) Build iOS
+  # -------------------------------------------------------------------
+  build-ios:
+    name: Build Engine on iOS
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        build_mode: [debug, profile, release]
+    steps:
+      - name: Check out Flutter repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install python git ninja cmake
+          
+          # depot_tools
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git $HOME/depot_tools
+          echo "::add-path::$HOME/depot_tools"
+
+      - name: Sync dependencies (gclient sync)
+        working-directory: engine
+        run: |
+          gclient sync
+
+      - name: Generate GN build files
+        working-directory: engine
+        run: |
+          # Customize for iOS device vs iOS simulator as needed
+          gn gen out/ios_${{ matrix.build_mode }} \
+            --args="is_debug=${{ matrix.build_mode == 'debug' }} \
+                    is_profile=${{ matrix.build_mode == 'profile' }} \
+                    target_os=\"ios\""
+
+      - name: Build flutter engine
+        working-directory: engine
+        run: |
+          ninja -C out/ios_${{ matrix.build_mode }} flutter
+
+
+  # -------------------------------------------------------------------
+  # (Optional) Build Android
+  # -------------------------------------------------------------------
+  build-android:
+    name: Build Engine on Android
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_mode: [debug, profile, release]
+    steps:
+      - name: Check out Flutter repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl python3 python3-pip python3-setuptools git clang cmake ninja-build pkg-config default-jdk
+          
+          # Android SDK/NDK setup if needed
+          # e.g., install a specific NDK version, set environment variables, etc.
+          
+          # depot_tools
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git $HOME/depot_tools
+          echo "::add-path::$HOME/depot_tools"
+
+      - name: Sync dependencies (gclient sync)
+        working-directory: engine
+        run: |
+          gclient sync
+
+      - name: Generate GN build files
+        working-directory: engine
+        run: |
+          gn gen out/android_${{ matrix.build_mode }} \
+            --args="is_debug=${{ matrix.build_mode == 'debug' }} \
+                    is_profile=${{ matrix.build_mode == 'profile' }} \
+                    target_os=\"android\""
+
+      - name: Build flutter engine
+        working-directory: engine
+        run: |
+          ninja -C out/android_${{ matrix.build_mode }} flutter
+
+
+  # -------------------------------------------------------------------
+  # (Optional) Build Web (WASM target)
+  # -------------------------------------------------------------------
+  build-web:
+    name: Build Engine on Web
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_mode: [debug, profile, release]
+    steps:
+      - name: Check out Flutter repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl python3 python3-pip python3-setuptools git clang cmake ninja-build pkg-config
+          
+          # depot_tools
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git $HOME/depot_tools
+          echo "::add-path::$HOME/depot_tools"
+
+      - name: Sync dependencies (gclient sync)
+        working-directory: engine
+        run: |
+          gclient sync
+
+      - name: Generate GN build files
+        working-directory: engine
+        run: |
+          gn gen out/web_${{ matrix.build_mode }} \
+            --args="is_debug=${{ matrix.build_mode == 'debug' }} \
+                    is_profile=${{ matrix.build_mode == 'profile' }} \
+                    target_os=\"wasm\""
+
+      - name: Build flutter engine
+        working-directory: engine
+        run: |
+          ninja -C out/web_${{ matrix.build_mode }} flutter
