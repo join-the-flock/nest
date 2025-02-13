@@ -23,7 +23,7 @@
 # whichever user submitted the PR that ran this workflow.
 
 on:
-  pull_request:
+  pull_request_target:
     # This workflow handles new Nest PRs, as well as PR changes, and re-opened PRs.
     types: [opened, synchronize, reopened]
     branches:
@@ -99,7 +99,7 @@ jobs:
         run: |
           echo "Apply patches..."
           cd nest
-          python -u tools/git-import-patches.py patches
+          tools/git-import-patches patches
 
       - name: Push Flock changes to Flock repo for PR
         if: env.has_patch_changes == 'true'
