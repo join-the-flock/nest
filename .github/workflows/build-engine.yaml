@@ -7,6 +7,7 @@ on:
     branches: [ "main", "engine-builds" ]
 
 jobs:
+
   # -------------------------------------------------------------------
   # 1) Build on Linux
   # -------------------------------------------------------------------
@@ -17,6 +18,9 @@ jobs:
       matrix:
         build_mode: [debug, profile, release]
     steps:
+      - name: Set Actions Allow Unsecure Commands
+        run: |
+          echo "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $GITHUB_ENV
       - name: Check out Flutter repo
         uses: actions/checkout@v3
         with:
@@ -65,6 +69,9 @@ jobs:
       matrix:
         build_mode: [debug, profile, release]
     steps:
+      - name: Set Actions Allow Unsecure Commands
+        run: |
+          echo "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $GITHUB_ENV
       - name: Check out Flutter repo
         uses: actions/checkout@v3
         with:
@@ -106,6 +113,10 @@ jobs:
       matrix:
         build_mode: [debug, profile, release]
     steps:
+      - name: Set Actions Allow Unsecure Commands
+        run: |
+          echo "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $GITHUB_ENV
+      
       - name: Check out Flutter repo
         uses: actions/checkout@v3
         with:
@@ -149,6 +160,10 @@ jobs:
       matrix:
         build_mode: [debug, profile, release]
     steps:
+      - name: Set Actions Allow Unsecure Commands
+        run: |
+          echo "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $GITHUB_ENV
+
       - name: Check out Flutter repo
         uses: actions/checkout@v3
         with:
@@ -193,6 +208,10 @@ jobs:
       matrix:
         build_mode: [debug, profile, release]
     steps:
+      - name: Set Actions Allow Unsecure Commands
+        run: |
+          echo "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $GITHUB_ENV
+
       - name: Check out Flutter repo
         uses: actions/checkout@v3
         with:
@@ -239,6 +258,11 @@ jobs:
       matrix:
         build_mode: [debug, profile, release]
     steps:
+
+      - name: Set Actions Allow Unsecure Commands
+        run: |
+          echo "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $GITHUB_ENV
+          
       - name: Check out Flutter repo
         uses: actions/checkout@v3
         with:
