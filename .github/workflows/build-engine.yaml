@@ -28,7 +28,9 @@ jobs:
           # submodules: true
           # fetch-depth: 0 (if you need full history)
           fetch-depth: 0
-
+      - name: 
+        run: |
+          cp engine/scripts/rbe.gclient .gclient
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -77,6 +79,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 
+        run: |
+          cp engine/scripts/rbe.gclient .gclient
+
       - name: Install dependencies
         run: |
           choco install python --version=3.9.0 -y
@@ -121,6 +127,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - name: 
+        run: |
+          cp engine/scripts/rbe.gclient .gclient
 
       - name: Install dependencies
         run: |
@@ -168,6 +178,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - name: 
+        run: |
+          cp engine/scripts/rbe.gclient .gclient
 
       - name: Install dependencies
         run: |
@@ -267,6 +281,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - name: 
+        run: |
+          cp engine/scripts/rbe.gclient .gclient
 
       - name: Install dependencies
         run: |
