@@ -1,0 +1,27 @@
+name: 'Run Framework Tests'
+description: 'Runs the Flutter Framework Tests'
+inputs:
+  flutter_path:
+    required: true
+    description: "the absolute path to flock"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Setup Android Tools
+      shell: bash
+      run: |
+        sudo apt-get install android-tools-adb
+
+    - name: Run Tests
+      shell: bash
+      run: |
+        PATH="$PATH:`pwd`/${{inputs.flutter_path}}/bin"
+        flutter update-packages
+        cd ${{inputs.flutter_path}}/packages/flutter
+        flutter test
