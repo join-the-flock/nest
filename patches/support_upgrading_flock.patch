@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Victor Eronmosele <victoreronmosele@gmail.com>
+Date: Sat, 1 Mar 2025 01:04:36 +0100
+Subject: Support upgrading Flock
+
+Changes made:
+* Add Flock repository URLs in VersionUpstreamValidator's standard remotes
+* Update the Git URL used to determine the Flutter version to Flock's Git URL
+
+diff --git a/packages/flutter_tools/lib/src/version.dart b/packages/flutter_tools/lib/src/version.dart
+index 77ea1b13d0d468d7e7bda2375c490debcc0f00c9..a2b0366c0912fb1f162b96238efeeeec0bbb09c9 100644
+--- a/packages/flutter_tools/lib/src/version.dart
++++ b/packages/flutter_tools/lib/src/version.dart
+@@ -711,6 +711,9 @@ class VersionUpstreamValidator {
+     'https://github.com/flutter/flutter.git',
+     'git@github.com:flutter/flutter.git',
+     'ssh://git@github.com/flutter/flutter.git',
++    'https://github.com/join-the-flock/flock.git',
++    'git@github.com:join-the-flock/flock.git',
++    'ssh://git@github.com/join-the-flock/flock.git',
+   ];
+ 
+   // Strips ".git" suffix from a given string, preferably an url.
+@@ -964,7 +967,7 @@ class GitTagVersion {
+       if (!kDevelopmentChannels.contains(channel) && kOfficialChannels.contains(channel)) {
+         globals.printTrace('Skipping request to fetchTags - on well known channel $channel.');
+       } else {
+-        final String flutterGit = platform.environment['FLUTTER_GIT_URL'] ?? 'https://github.com/flutter/flutter.git';
++        final String flutterGit = platform.environment['FLUTTER_GIT_URL'] ?? 'https://github.com/join-the-flock/flock.git';
+         _runGit('git fetch $flutterGit --tags -f', processUtils, workingDirectory);
+       }
+     }
