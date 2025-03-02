@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Matt Carroll <matthew-carroll@users.noreply.github.com>
+Date: Tue, 25 Mar 2025 23:03:11 -0700
+Subject: Add more logs to create-flock-pr-with-nest-patch.yaml
+
+
+diff --git a/.github/workflows/create-flock-pr-with-nest-patch.yaml b/.github/workflows/create-flock-pr-with-nest-patch.yaml
+index 099e2bbe14182604861490c0e0701b0bf3c84f88..4c45580cc7030d9bf74bc46cd4aca5b897f1fbf9 100644
+--- a/.github/workflows/create-flock-pr-with-nest-patch.yaml
++++ b/.github/workflows/create-flock-pr-with-nest-patch.yaml
+@@ -148,6 +148,11 @@ jobs:
+ 
+             # Create the PR.
+             echo "Creating a PR..."
++            echo " - title: ${{ github.event.pull_request.title }}"
++            echo " - head: ${{ github.event.pull_request.head.ref }}"
++            echo " - base: ${{ env.FLUTTER_BRANCH }}"
++            echo ""
++            
+             gh pr create \
+               --title "${{ github.event.pull_request.title }}" \
+               --body-file "pr_description.txt" \

@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Matt Carroll <matthew-carroll@users.noreply.github.com>
+Date: Tue, 25 Mar 2025 22:11:32 -0700
+Subject: Create Flock PRs by applying to Flutter instead of Flock
+
+
+diff --git a/.github/workflows/create-flock-pr-with-nest-patch.yaml b/.github/workflows/create-flock-pr-with-nest-patch.yaml
+index e527db11698f0fced02aa46fed1d7c334680f641..099e2bbe14182604861490c0e0701b0bf3c84f88 100644
+--- a/.github/workflows/create-flock-pr-with-nest-patch.yaml
++++ b/.github/workflows/create-flock-pr-with-nest-patch.yaml
+@@ -31,6 +31,9 @@ on:
+ 
+ # Update these variables to fit your custom fork configuration.
+ env:
++  # GitHub path to official Flutter repository.
++  FLUTTER_REPO: "flutter/flutter"
++
+   # The GitHub location of your Flutter fork.
+   FLOCK_REPO: "join-the-flock/flock"
+ 
+@@ -53,14 +56,8 @@ jobs:
+         with:
+           path: 'nest'
+           fetch-depth: 0 # Checkout everything to get access to the tags
+-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+-          # Changed the below to the above after external contributor patch run failed.
+-          # March 23, 2025 - Remove this commented section is above works in all cases.
+-          # repository: ${{github.repository}}
+-          ref: ${{github.head_ref}}
+-          # Changed the below to the above after external contributor patch run failed.
+-          # March 23, 2025 - Remove this commented section is above works in all cases.
+-          # ref: ${{github.event.pull_request.head.ref}}
++          repository: ${{github.repository}}
++          ref: ${{github.event.pull_request.head.ref}}
+           token: ${{ env.GITHUB_PAT }}
+ 
+       - name: Look for Flock patch changes
+@@ -75,13 +72,13 @@ jobs:
+             echo "has_patch_changes=true" >> $GITHUB_ENV
+           fi
+ 
+-      - name: Checkout Flock
++      - name: Checkout Flutter
+         if: env.has_patch_changes == 'true'
+         uses: actions/checkout@v4
+         with:
+           path: 'nest/flock'
+           fetch-depth: 0 # Checkout everything to get access to the tags
+-          repository: ${{ env.FLOCK_REPO }}
++          repository: ${{ env.FLUTTER_REPO }}
+           ref: ${{ env.FLUTTER_BRANCH }}
+           token: ${{ env.GITHUB_PAT }}
+ 
+@@ -100,7 +97,7 @@ jobs:
+         with:
+           python-version: '3.12'
+ 
+-      - name: Apply Nest patches to Flock
++      - name: Apply Nest patches to Flutter
+         if: env.has_patch_changes == 'true'
+         run: |
+           echo "Apply patches..."

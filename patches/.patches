@@ -1,2 +1,11 @@
-added_gclient_files_to_gitignore_to_support_flock_and_other_flutter.patch
-alter_update_engine_version_sh_to_use_the_latest_flutter.patch
+create_flock_prs_by_applying_to_flutter_instead_of_flock.patch
+add_more_logs_to_create-flock-pr-with-nest-patch_yaml.patch
+try_changing_remote_from_flutter_to_flock_in.patch
+update_create-flock-pr-with-nest-patch_yaml.patch
+update_create-flock-pr-with-nest-patch_yaml.patch
+update_create-flock-pr-with-nest-patch_yaml.patch
+update_create-flock-pr-with-nest-patch_yaml.patch
+update_create-flock-pr-with-nest-patch_yaml.patch
+update_create-flock-pr-with-nest-patch_yaml.patch
+update_create-flock-pr-with-nest-patch_yaml.patch
+support_upgrading_flock.patch

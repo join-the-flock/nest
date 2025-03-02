@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Matt Carroll <matthew-carroll@users.noreply.github.com>
+Date: Wed, 26 Mar 2025 11:42:44 -0700
+Subject: Try changing remote from Flutter to Flock in
+ create-flock-pr-with-nest-patch.yaml
+
+
+diff --git a/.github/workflows/create-flock-pr-with-nest-patch.yaml b/.github/workflows/create-flock-pr-with-nest-patch.yaml
+index 4c45580cc7030d9bf74bc46cd4aca5b897f1fbf9..055c67fb2228a786c3bcee61f7a62965aace2a9d 100644
+--- a/.github/workflows/create-flock-pr-with-nest-patch.yaml
++++ b/.github/workflows/create-flock-pr-with-nest-patch.yaml
+@@ -81,6 +81,19 @@ jobs:
+           repository: ${{ env.FLUTTER_REPO }}
+           ref: ${{ env.FLUTTER_BRANCH }}
+           token: ${{ env.GITHUB_PAT }}
++      
++      - name: Change Flutter remote origin to Flock
++        if: env.has_patch_changes == 'true'
++        working-directory: nest/flock
++        run: |
++          echo "Changing git origin from Flutter to Flock"
++          initial_remote=$(git remote get-url origin)
++          echo "Initial remote is: $initial_remote"
++
++          git remote set-url origin https://github.com/${{ env.FLOCK_REPO }}
++
++          new_remote=$(git remote get-url origin)
++          echo "New remote is: $new_remote"
+ 
+       - name: Create branch for Flock PR
+         if: env.has_patch_changes == 'true'
