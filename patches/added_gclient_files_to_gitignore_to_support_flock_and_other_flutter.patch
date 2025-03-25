@@ -5,7 +5,7 @@ Subject: Added gclient files to gitignore to support Flock and other Flutter
  forks.
 
 diff --git a/.gitignore b/.gitignore
-index d43cb65efb1a01561b05f7b09bbe4b050301c1ed..d263bdb99b19030dd93dd513aa08cdb42c145a1f 100644
+index 73728cebbfccffd6864ddf5f7d46a3c8f4fffa38..7eb4ad199e0b8515f896ce9dbc91d437292bc2a3 100644
 --- a/.gitignore
 +++ b/.gitignore
 @@ -1,3 +1,8 @@

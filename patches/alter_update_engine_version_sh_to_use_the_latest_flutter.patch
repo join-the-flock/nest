@@ -1,32 +1,31 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Matt Carroll <matthew-carroll@users.noreply.github.com>
 Date: Sun, 26 Jan 2025 19:50:00 -0800
-Subject: [Flock] - Alter update_engine_version.sh to lookup engine hash based
- on latest Flutter commit tagged by Flock daily rebase.
-
+Subject: - Alter update_engine_version.sh to lookup engine hash based on
+ latest Flutter commit tagged by Flock daily rebase.
 
 diff --git a/bin/internal/update_engine_version.sh b/bin/internal/update_engine_version.sh
-index a35fa190aa2fecdfc3a066459229faa113b9ffaf..985d97cf9fbc94ac0019a33d5e3b9117086109e0 100755
+index 2f058bdd658afb2be4067666643cd37c91bf4bfb..22c980af37d99ed5eb2372b608f91443d579a48e 100755
 --- a/bin/internal/update_engine_version.sh
 +++ b/bin/internal/update_engine_version.sh
-@@ -45,11 +45,15 @@ if [ -z "$ENGINE_VERSION" ] && [ -f "$FLUTTER_ROOT/DEPS" ] && [ -f "$FLUTTER_ROO
-     exit_code=$?
-     set -e
+@@ -63,11 +63,15 @@ else
+   exit_code=$?
+   set -e
  
--    if [[ $exit_code -eq 0 ]]; then
--      ENGINE_VERSION=$(git -C "$FLUTTER_ROOT" merge-base HEAD upstream/master)
--    else
--      ENGINE_VERSION=$(git -C "$FLUTTER_ROOT" merge-base HEAD origin/master)
--    fi
-+    # FLOCK: For the engine version, use the git commit hash for the most recent Flutter
-+    #        commit, instead of the most recent Flock commit.
-+    ENGINE_VERSION=$(git -C "$FLUTTER_ROOT" rev-parse flock-engine-hash^{commit})
-+
-+    # if [[ $exit_code -eq 0 ]]; then
-+    #   ENGINE_VERSION=$(git -C "$FLUTTER_ROOT" merge-base HEAD upstream/master)
-+    # else
-+    #   ENGINE_VERSION=$(git -C "$FLUTTER_ROOT" merge-base HEAD origin/master)
-+    # fi
-   else
-     ENGINE_VERSION=$(git -C "$FLUTTER_ROOT" rev-parse HEAD)
-   fi
+-  if [[ $exit_code -eq 0 ]]; then
+-    ENGINE_VERSION=$(git -C "$FLUTTER_ROOT" merge-base HEAD upstream/master)
+-  else
+-    ENGINE_VERSION=$(git -C "$FLUTTER_ROOT" merge-base HEAD origin/master)
+-  fi
++  # FLOCK: For the engine version, use the git commit hash for the most recent Flutter
++  #        commit, instead of the most recent Flock commit.
++  ENGINE_VERSION=$(git -C "$FLUTTER_ROOT" rev-parse flock-engine-hash^{commit})
++  
++  # if [[ $exit_code -eq 0 ]]; then
++  #   ENGINE_VERSION=$(git -C "$FLUTTER_ROOT" merge-base HEAD upstream/master)
++  # else
++  #   ENGINE_VERSION=$(git -C "$FLUTTER_ROOT" merge-base HEAD origin/master)
++  # fi
+ fi
+ 
+ # Write the engine version out so downstream tools know what to look for.
