@@ -148,6 +148,11 @@ jobs:
 
             # Create the PR.
             echo "Creating a PR..."
+            echo " - title: ${{ github.event.pull_request.title }}"
+            echo " - head: ${{ github.event.pull_request.head.ref }}"
+            echo " - base: ${{ env.FLUTTER_BRANCH }}"
+            echo ""
+            
             gh pr create \
               --title "${{ github.event.pull_request.title }}" \
               --body-file "pr_description.txt" \
