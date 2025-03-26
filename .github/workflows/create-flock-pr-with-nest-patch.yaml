@@ -114,12 +114,12 @@ jobs:
         if: env.has_patch_changes == 'true'
         run: |
           echo "Apply patches..."
+          cd nest
+
           cd flock
           echo "History before applying patches:"
           git log -n 5 --pretty=format:"%h - %an: %s"
-
           cd ..
-          cd nest
 
           echo ""
           echo "Applying patches..."
