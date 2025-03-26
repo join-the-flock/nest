@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Matt Carroll <matthew-carroll@users.noreply.github.com>
 Date: Sun, 26 Jan 2025 19:50:00 -0800
-Subject: - Alter update_engine_version.sh to lookup engine hash based on
+Subject: Alter update_engine_version.sh to lookup engine hash based on
  latest Flutter commit tagged by Flock daily rebase.
 
 diff --git a/bin/internal/update_engine_version.sh b/bin/internal/update_engine_version.sh
