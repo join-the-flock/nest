@@ -81,6 +81,19 @@ jobs:
           repository: ${{ env.FLUTTER_REPO }}
           ref: ${{ env.FLUTTER_BRANCH }}
           token: ${{ env.GITHUB_PAT }}
+      
+      - name: Change Flutter remote origin to Flock
+        if: env.has_patch_changes == 'true'
+        working-directory: nest/flock
+        run: |
+          echo "Changing git origin from Flutter to Flock"
+          initial_remote=$(git remote get-url origin)
+          echo "Initial remote is: $initial_remote"
+
+          git remote set-url origin https://github.com/${{ env.FLOCK_REPO }}
+
+          new_remote=$(git remote get-url origin)
+          echo "New remote is: $new_remote"
 
       - name: Create branch for Flock PR
         if: env.has_patch_changes == 'true'
