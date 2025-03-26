@@ -115,7 +115,17 @@ jobs:
         run: |
           echo "Apply patches..."
           cd nest
+
+          echo "History before applying patches:"
+          git log -n 5 --pretty=format:"%h - %an: %s"
+
+          echo ""
+          echo "Applying patches..."
           tools/git-import-patches patches
+          echo ""
+
+          echo "History after applying patches:"
+          git log -n 5 --pretty=format:"%h - %an: %s"
 
       - name: Push Flock changes to Flock repo for PR
         if: env.has_patch_changes == 'true'
@@ -159,9 +169,9 @@ jobs:
             # Save the PR description to a file so that we can insert newlines.
             echo "Generating PR description and saving to file..."
             echo "--"
-            printf " - original pull request URL: ${{ github.event.pull_request.url }}"
+            printf " - original pull request URL: ${{ github.event.pull_request.url }}\n"
             echo "--"
-            printf " - original pull request body: ${{ github.event.pull_request.body }}"
+            printf " - original pull request body: ${{ github.event.pull_request.body }}\n"
             echo "--"
 
             printf "${{ github.event.pull_request.body }}\n\n---\n\nThis Flock PR is derived from the patch in the following Nest PR: \n${{ github.event.pull_request.url }}" > pr_description.txt
