@@ -157,7 +157,12 @@ jobs:
             echo "Flock PR doesn't exist yet. Creating it."
 
             # Save the PR description to a file so that we can insert newlines.
+            echo "Generating PR description and saving to file..."
+            echo " - original pull request URL: ${{ github.event.pull_request.url }}"
+            echo " - original pull request body: ${{ github.event.pull_request.body }}"
             echo -e "${{ github.event.pull_request.body }}\n\n---\n\nThis Flock PR is derived from the patch in the following Nest PR: \n${{ github.event.pull_request.url }}" > pr_description.txt
+            cat pr_description.txt
+            echo ""
 
             # Create the PR.
             echo "Creating a PR..."
