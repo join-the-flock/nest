@@ -119,6 +119,8 @@ jobs:
           cd flock
           echo "History before applying patches:"
           git log -n 5 --pretty=format:"%h - %an: %s"
+          echo "Git Status:"
+          git status
           cd ..
 
           echo ""
@@ -129,6 +131,8 @@ jobs:
           cd flock
           echo "History after applying patches:"
           git log -n 5 --pretty=format:"%h - %an: %s"
+          echo "Git Status:"
+          git status
 
       - name: Push Flock changes to Flock repo for PR
         if: env.has_patch_changes == 'true'
