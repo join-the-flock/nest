@@ -5,7 +5,8 @@ inputs:
 
   flutter_repo:
     description: "the repo of flutter to use as a source"
-    required: true
+    required: false
+    default: flutter/flutter
 
   flutter_ref:
     description: "the ref of flutter to checkout"
