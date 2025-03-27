@@ -13,6 +13,7 @@ runs:
   using: "composite"
   steps:
     - name: Push to destination
+      shell: bash
       run: |
         cd flock
         git remote add destination ${{ inputs.destination_repo }}
