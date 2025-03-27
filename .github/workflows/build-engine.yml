@@ -1,7 +1,0 @@
-name: Build Flutter Engine (Monorepo)
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
