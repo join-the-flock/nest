@@ -55,6 +55,12 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
 
+      - name: checkout flutter
+        uses: ./.github/actions/checkout-flutter-and-patch
+        with:
+          flutter_ref: ${{ github.ref }}
+          flutter_repo: ${{ env.FLUTTER_REPO }}
+
       - name: web build
         uses: ./.github/actions/build-engine
         with:
@@ -151,6 +157,12 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
+
+      - name: checkout flutter
+        uses: ./.github/actions/checkout-flutter-and-patch
+        with:
+          flutter_ref: ${{ github.ref }}
+          flutter_repo: ${{ env.FLUTTER_REPO }}
 
       - name: android build
         uses: ./.github/actions/build-engine
