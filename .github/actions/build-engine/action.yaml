@@ -43,6 +43,7 @@ runs:
         version: '>= 363.0.0'
 
     - name: Setup gcloud
+      if: ${{ inputs.gcp_bucket != '' && inputs.gcp_credentials != '' }}
       shell: bash
       env:
         GCP_CREDENTIALS: ${{ inputs.gcp_credentials }}
