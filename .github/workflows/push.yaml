@@ -15,8 +15,6 @@ jobs:
       - name: Apply Patches
         uses: ./.github/actions/apply-patches
         with:
-          token: ${{ secrets.REPO_WORKFLOW_PAT || secrets.GITHUB_TOKEN }}
-          flutter_ref: "${{ vars.FLUTTER_BASE_REF || github.base_ref || github.ref_name }}"
           email: "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
           user_name: "${{ github.actor }}"
 

@@ -1,10 +1,19 @@
 name: 'Apply Patches'
 description: 'Checkout flock into the path "flock" and then apply the patches'
+inputs:
+
+  email:
+    required: true
+    description: "the committer email"
+
+  user_name:
+    required: true
+    description: "the committer name"
 
 runs:
   using: "composite"
   steps:
-
+      
     - name: Apply Nest patches to Flock
       shell: bash
       run: |
