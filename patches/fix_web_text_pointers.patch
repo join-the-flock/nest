@@ -1,3 +1,8 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jesse Ezell <jezell@users.noreply.github.com>
+Date: Sun, 27 Mar 2025 14:49:01 -0800
+Subject: Fix scrollbars and text selection in flutter web
+
 diff --git a/engine/src/flutter/lib/web_ui/lib/src/engine/pointer_binding/event_position_helper.dart b/engine/src/flutter/lib/web_ui/lib/src/engine/pointer_binding/event_position_helper.dart
 index 6a210c9a01..54719e25fb 100644
 --- a/engine/src/flutter/lib/web_ui/lib/src/engine/pointer_binding/event_position_helper.dart
