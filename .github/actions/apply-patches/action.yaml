@@ -25,6 +25,9 @@ inputs:
     description: "the committer name"
     default: "${{ github.actor }}"
 
+  fetch_depth:
+    required: false
+    default: 1
 
 runs:
   using: "composite"
@@ -33,7 +36,6 @@ runs:
       uses: actions/checkout@v4
       with:
         path: 'flock'
-        fetch-depth: 0 # Checkout everything to get access to the tags
         repository: ${{inputs.flutter_repo}}
         ref: '${{inputs.flutter_ref}}'
         token: ${{ inputs.token }}

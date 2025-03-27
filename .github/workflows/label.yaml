@@ -18,6 +18,7 @@ jobs:
         with:
           email: "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
           user_name: "${{ github.actor }}"
+          fetch_depth: 0
 
       - name: Run Framework Tests
         uses: ./.github/actions/run-framework-tests
