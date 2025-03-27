@@ -652,6 +652,7 @@ jobs:
         uses: ./.github/actions/apply-patches
         with:
           flutter_ref: ${{ github.ref }}
+          token: ${{ secrets.REPO_WORKFLOW_PAT }}
 
       # TODO: maybe we should we write an engine-version file to make it easier for flutter cli to find our version without mods?
       
