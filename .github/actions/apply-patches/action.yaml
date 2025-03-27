@@ -1,0 +1,37 @@
+name: 'Apply Patches'
+description: 'Checkout flock into the path "flock" and then apply the patches'
+inputs:
+  flutter_ref:
+    required: true
+    description: "the ref of the flutter repo to use as a base"
+
+  token: 
+    required: true
+    description: "access token"
+
+  email:
+    required: true
+    description: "the committer email"
+
+  user_name:
+    required: true
+    description: "the committer name"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout Flutter
+      uses: actions/checkout@v4
+      with:
+        path: 'flock'
+        fetch-depth: 0 # Checkout everything to get access to the tags
+        repository: 'flutter/flutter'
+        ref: '${{inputs.flutter_ref}}'
+        token: ${{ inputs.token }}
+    
+    - name: Apply Nest patches to Flock
+      shell: bash
+      run: |
+        git config --global user.email "${{ inputs.email }}"
+        git config --global user.name "${{ inputs.user_name }}"
+        tools/git-import-patches patches
