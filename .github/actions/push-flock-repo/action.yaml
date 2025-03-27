@@ -1,0 +1,20 @@
+name: 'Push Flock Repo'
+description: 'Applies nest patches and then pushes to a flock repo'
+inputs:
+  destination_repo:
+    required: true
+    description: "the repo to push the flock build to"
+
+  destination_branch:
+    required: true
+    description: "the branch to push the flock build to"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Push to destination
+      run: |
+        cd flock
+        git remote add destination ${{ inputs.destination_repo }}
+        git checkout -b flock-temp
+        git push -f destination flock-temp:${{ inputs.destination_branch}}

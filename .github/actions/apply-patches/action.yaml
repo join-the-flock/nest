@@ -43,10 +43,6 @@ runs:
     - name: Apply Nest patches to Flock
       shell: bash
       run: |
-        ls .
-        echo '----'
-        ls tools
-        echo '----'
         git config --global user.email "${{ inputs.email }}"
         git config --global user.name "${{ inputs.user_name }}"
         tools/git-import-patches patches
