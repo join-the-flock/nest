@@ -1,6 +1,5 @@
 name: 'Apply Patches'
 description: 'Checkout flock into the path "flock" and then apply the patches'
-inputs:
 
 runs:
   using: "composite"
