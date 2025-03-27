@@ -1,6 +1,6 @@
 # .github/actions/checkout-flutter-and-patch/action.yml
 name: ""
-description: "Checkout a flutter repo and patch it. Patched flutter will be placed in the path 'flock'
+description: "Checkout a flutter repo and patch it. Patched flutter will be placed in the path 'flock'"
 inputs:
 
   flutter_repo:
