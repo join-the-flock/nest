@@ -32,7 +32,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout Flutter
+    - name: checkout base flutter ref
       uses: actions/checkout@v4
       with:
         path: 'flock'
@@ -40,7 +40,7 @@ runs:
         ref: '${{inputs.flutter_ref}}'
         token: ${{ inputs.token }}
     
-    - name: Apply Nest patches to Flock
+    - name: apply nest patches to flutter
       shell: bash
       run: |
         git config --global user.email "${{ inputs.email }}"

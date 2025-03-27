@@ -16,7 +16,7 @@ jobs:
           path: ''
           ref: ${{github.event.pull_request.head.ref}}
       
-      - name: checkout flutter
+      - name: checkout flutter and apply patches
         uses: ./.github/actions/apply-patches
         with:
           flutter_ref: ${{ github.ref }}
