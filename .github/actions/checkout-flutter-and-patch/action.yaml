@@ -20,10 +20,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: 'Set up Cloud SDK'
-      uses: 'google-github-actions/setup-gcloud@v2'
-      with:
-        version: '>= 363.0.0'
 
     - name: Checkout Flutter
       uses: actions/checkout@v4
@@ -33,12 +29,7 @@ runs:
         ref: ${{ inputs.flutter_ref }}
         token: ${{ inputs.github_token }}
 
-
-    - name: ls
-      shell: bash
-      run: |
-        echo 'flock'
-        ls flock
-
-        echo 'engine'
-        ls flock/engine
+    - name: 'Patch'
+      uses: ./.github/actions/apply-patches
+      with:
+        
