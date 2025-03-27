@@ -5,17 +5,29 @@ inputs:
     required: true
     description: "the ref of the flutter repo to use as a base"
 
+  flutter_repo:
+    required: false
+    description: "the flutter repo to use as a base"
+    default: flutter/flutter
+
   token: 
-    required: true
+    required: false
     description: "access token"
+    default: ${{ github.token }}
 
   email:
-    required: true
+    required: false
+    default: "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
     description: "the committer email"
 
   user_name:
-    required: true
+    required: false
     description: "the committer name"
+    default: "${{ github.actor }}"
+
+  fetch_depth:
+    required: false
+    default: 1
 
 runs:
   using: "composite"
@@ -24,8 +36,7 @@ runs:
       uses: actions/checkout@v4
       with:
         path: 'flock'
-        fetch-depth: 0 # Checkout everything to get access to the tags
-        repository: 'flutter/flutter'
+        repository: ${{inputs.flutter_repo}}
         ref: '${{inputs.flutter_ref}}'
         token: ${{ inputs.token }}
     

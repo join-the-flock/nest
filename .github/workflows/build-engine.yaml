@@ -1,0 +1,637 @@
+name: Build Flutter Engine with Engine Tool (Matrix)
+
+on:
+  push:
+    branches: [ "main", "stable", "beta", "engine-builds" ]
+  pull_request:
+    branches: [ "main", "stable", "beta", "engine-builds" ]
+env:
+  # don't try to install google's internal copy of visual studio
+  DEPOT_TOOLS_WIN_TOOLCHAIN: 0
+
+jobs:
+  build-engine-web:
+    # We'll run on whatever OS the matrix entry specifies.
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      max-parallel: 4
+      matrix:
+        include:
+
+          - name: linux wasm release (web)
+            config_name: wasm_release
+            os: ubuntu-latest
+
+          - name: linux wasm debug (web)
+            config_name: wasm_debug_unopt
+            os: ubuntu-latest
+
+          # Running web tests with et doesn't seem to work
+
+          #- name: web_tests/test_bundles/dart2js-canvaskit-canvaskit
+          #  os: ubuntu-latest
+          #  config_name: web_tests/test_bundles/dart2js-canvaskit-canvaskit
+          #- name: web_tests/test_bundles/dart2js-canvaskit-engine
+          #  os: ubuntu-latest
+          #  config_name: web_tests/test_bundles/dart2js-canvaskit-engine
+          #- name: web_tests/test_bundles/dart2js-canvaskit-ui
+          #  os: ubuntu-latest
+          #  config_name: web_tests/test_bundles/dart2js-canvaskit-ui
+          #- name: web_tests/test_bundles/dart2wasm-canvaskit-engine
+          #  os: ubuntu-latest
+          #  config_name: web_tests/test_bundles/dart2wasm-canvaskit-engine
+          #- name: web_tests/test_bundles/dart2wasm-skwasm-ui
+          #  os: ubuntu-latest
+          #  config_name: web_tests/test_bundles/dart2wasm-skwasm-ui
+          #- name: web_tests/test_bundles/fallbacks
+          #  os: ubuntu-latest
+          #  config_name: web_tests/test_bundles/fallbacks
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          path: ''
+
+      - name: checkout flutter
+        uses: ./.github/actions/apply-patches
+        with:
+          flutter_ref: ${{ github.ref }}
+
+      - name: web build
+        uses: ./.github/actions/build-engine
+        with:
+          gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
+          gcp_bucket: flutter_builds
+          gclient: slim-linux-web
+          config_name: ${{ matrix.config_name }}
+          engine_version: ${{ github.sha }}
+
+
+  build-engine-android:
+    # We'll run on whatever OS the matrix entry specifies.
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      max-parallel: 4
+      matrix:
+        include:
+          - name: android debug
+            os: ubuntu-latest
+            config_name: ci/android_debug
+
+          - name: android debug arm64
+            os: ubuntu-latest
+            config_name: ci/android_debug_arm64
+
+          - name: android debug arm64 clang tidy
+            os: ubuntu-latest
+            config_name: ci/android_debug_arm64_clang_tidy
+
+          - name: android debug arm64 ddm
+            os: ubuntu-latest
+            config_name: ci/android_debug_arm64_ddm
+
+          - name: android debug arm64 validation layers
+            os: ubuntu-latest
+            config_name: ci/android_debug_arm64_validation_layers
+
+          - name: android debug unopt
+            os: ubuntu-latest
+            config_name: ci/android_debug_unopt
+
+          - name: android debug x64
+            os: ubuntu-latest
+            config_name: ci/android_debug_x64
+
+          - name: android debug x86
+            os: ubuntu-latest
+            config_name: ci/android_debug_x86
+
+          - name: android embedder debug unopt
+            os: ubuntu-latest
+            config_name: ci/android_embedder_debug_unopt
+
+          - name: android emulator debug x64
+            os: ubuntu-latest
+            config_name: ci/android_emulator_debug_x64
+
+          - name: android emulator debug x86
+            os: ubuntu-latest
+            config_name: ci/android_emulator_debug_x86
+
+          - name: android profile
+            os: ubuntu-latest
+            config_name: ci/android_profile
+
+          - name: android profile arm64
+            os: ubuntu-latest
+            config_name: ci/android_profile_arm64
+
+          - name: android profile x64
+            os: ubuntu-latest
+            config_name: ci/android_profile_x64
+
+          - name: android release
+            os: ubuntu-latest
+            config_name:  ci/android_release
+
+          - name: android release arm64
+            os: ubuntu-latest
+            config_name: ci/android_release_arm64
+
+          - name: android release arm64 ddm
+            os: ubuntu-latest
+            config_name:  ci/android_release_arm64_ddm
+
+          - name: android release x64
+            os: ubuntu-latest
+            config_name: ci/android_release_x64
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: checkout flutter
+        uses: ./.github/actions/apply-patches
+        with:
+          flutter_ref: ${{ github.ref }}
+
+      - name: android build
+        uses: ./.github/actions/build-engine
+        with:
+          gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
+          gcp_bucket: flutter_builds
+          gclient: slim-linux-android
+          config_name: ${{ matrix.config_name }}
+          engine_version: ${{ github.sha }}
+
+
+  build-engine-linux:
+    # We'll run on whatever OS the matrix entry specifies.
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+
+    strategy:
+      max-parallel: 4
+      matrix:
+        include:
+
+          - name: linux host debug unopt
+            os: ubuntu-latest
+            config_name: ci/host_debug_unopt
+
+          - name: linux debug arm64
+            os: ubuntu-latest
+            config_name: ci/linux_debug_arm64
+
+          - name: linux profile arm64
+            os: ubuntu-latest
+            config_name: ci/linux_profile_arm64
+          - name: linux release arm64
+            os: ubuntu-latest
+            config_name: ci/linux_release_arm64
+
+          - name: linux host release
+            os: ubuntu-latest
+            config_name: ci/host_release
+
+          - name: linux host debug
+            config_name: ci/host_debug
+            os: ubuntu-latest
+
+
+          - name: linux host release
+            os: ubuntu-latest
+            config_name: ci/host_release_desktop
+
+          - name: linux host debug
+            config_name: ci/host_debug_desktop
+            os: ubuntu-latest
+
+          - name: linux host debug clang tidy
+            os: ubuntu-latest
+            config_name: ci/host_debug_clang_tidy
+
+          - name: linux host debug ddm
+            os: ubuntu-latest
+            config_name: ci/host_debug_ddm
+
+    steps:
+
+      - name: checkout out the repository
+        uses: actions/checkout@v4
+
+      - name: checkout flutter
+        uses: ./.github/actions/apply-patches
+        with:
+          flutter_ref: ${{ github.ref }}
+
+      - name: linux build
+        uses: ./.github/actions/build-engine
+        with:
+          gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
+          gcp_bucket: flutter-builds
+          gclient: slim-linux-desktop
+          config_name: ${{ matrix.config_name }}
+          engine_version: ${{ github.sha }}
+          
+
+      # ------------------------- TESTS BUILDS -------------------------
+
+      # - name: linux host debug test
+      #  os: ubuntu-latest
+      #  config_name: ci/host_debug_test
+      # - name: linux host debug unopt impeller tests
+      #  os: ubuntu-latest
+      #  config_name: ci/host_debug_unopt_impeller_tests
+      # - name: linux host profile desktop
+      #  os: ubuntu-latest
+      #  config_name: ci/host_profile_desktop
+      #- name: linux host profile test
+      #  os: ubuntu-latest
+      #  config_name: ci/host_profile_test
+      #- name: linux host release test
+      #  os: ubuntu-latest
+      #  config_name: ci/host_release_test
+      #- name: android debug test
+      #  os: ubuntu-latest
+      #  config_name: ci/android_debug_test
+
+  build-engine-mac:
+    # We'll run on whatever OS the matrix entry specifies.
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      max-parallel: 4
+      matrix:
+        include:
+
+         # ------------------------- MAC BUILDS -------------------------
+
+          - name: mac debug arm64
+            os: macos-latest
+            config_name: ci/mac_debug_arm64
+
+          - name: mac debug framework arm64
+            os: macos-latest
+            config_name: ci/mac_debug_framework_arm64
+
+          - name: mac debug gen snapshot arm64
+            os: macos-latest
+            config_name: ci/mac_debug_gen_snapshot_arm64
+
+          - name: mac profile arm64
+            os: macos-latest
+            config_name: ci/mac_profile_arm64
+
+          - name: mac profile frmaoek arm64
+            os: macos-latest
+            config_name: ci/mac_profile_framework_arm64
+
+          - name: mac profile gen snapshot arm64
+            os: macos-latest
+            config_name: ci/mac_profile_gen_snapshot_arm64
+
+          - name: mac release arm64
+            os: macos-latest
+            config_name: ci/mac_release_arm64
+
+          - name: mac framework arm64
+            os: macos-latest
+            config_name: ci/mac_release_framework_arm64
+
+          - name: mac mac release gen snapshot arm64
+            os: macos-latest
+            config_name: ci/mac_release_gen_snapshot_arm64
+
+          - name: mac host debug clang tidy
+            os: macos-latest
+            config_name: ci/host_debug_clang_tidy
+
+          - name: mac host debug framework
+            os: macos-latest
+            config_name:  ci/host_debug_framework
+
+          - name: mac host debug den snapshot
+            os: macos-latest
+            config_name: ci/host_debug_gen_snapshot
+
+          - name: mac host debug unopt arm64
+            os: macos-latest
+            config_name: ci/host_debug_unopt_arm64
+
+          - name: mac host profile framework
+            os: macos-latest
+            config_name: ci/host_profile_framework
+
+          - name: mac host profile gen snapshot
+            os: macos-latest
+            config_name: ci/host_profile_gen_snapshot
+
+          - name: mac host release framework
+            os: macos-latest
+            config_name: ci/host_release_framework
+
+          - name: mac host release gen snapshot
+            os: macos-latest
+            config_name: ci/host_release_gen_snapshot
+
+          - name: mac host profile
+            os: macos-latest
+            config_name: ci/host_profile
+
+          - name: mac host release
+            os: macos-latest
+            config_name: ci/host_release
+
+          - name: mac host debug
+            config_name: ci/host_debug
+            os: macos-latest
+
+          - name: mac release framework
+            config_name: ci/host_release_framework
+            os: macos-latest
+
+          - name: mac debug framework
+            config_name: ci/host_debug_framework
+            os: macos-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: checkout flutter
+        uses: ./.github/actions/apply-patches
+        with:
+          flutter_ref: ${{ github.ref }}
+
+      - name: mac build
+        uses: ./.github/actions/build-engine
+        with:
+          gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
+          gcp_bucket: flutter_builds
+          gclient: slim-mac
+          config_name: ${{ matrix.config_name }}
+          engine_version: ${{ github.sha }}
+
+
+  build-engine-ios:
+    # We'll run on whatever OS the matrix entry specifies.
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      max-parallel: 4
+      matrix:
+        include:
+          # ------------------------- iOS BUILDS -------------------------
+
+          - name: ios debug
+            config_name: ci/ios_debug
+            os: macos-latest
+
+          - name: ios debug sim
+            config_name: ci/ios_debug_sim
+            os: macos-latest
+
+          - name: ios debug sim arm64
+            config_name: ci/ios_debug_sim_arm64
+            os: macos-latest
+
+          - name: ios profile
+            config_name: ci/ios_profile
+            os: macos-latest
+
+          - name: ios release
+            config_name: ci/ios_release
+            os: macos-latest
+
+          - name: ios debug extension safe
+            config_name: ci/ios_debug_extension_safe
+            os: macos-latest
+
+          - name: ios debug sim arm64 extension safe
+            config_name: ci/ios_debug_sim_arm64_extension_safe
+            os: macos-latest
+
+          - name: ios debug sim extension safe
+            config_name: ci/ios_debug_sim_extension_safe
+            os: macos-latest
+
+          - name: ios debug unopt sim arm64 extension safe
+            config_name: ci/ios_debug_unopt_sim_arm64_extension_safe
+            os: macos-latest
+
+          - name: ios profile extension safe
+            config_name: ci/ios_profile_extension_safe
+            os: macos-latest
+
+          - name: ios release extension safe
+            config_name: ci/ios_release_extension_safe
+            os: macos-latest
+
+          # ------------------------- TESTS BUILDS -------------------------
+
+          # - name: mac release arm64 tests
+          #  os: macos-latest
+          #  config_name: ci/mac_release_arm64_tests
+          #- name: mac host debug arm64 tests
+          #  os: macos-latest
+          #  config_name: ci/host_debug_arm64_tests
+          #- name: mac host profile arm64 tests
+          #  os: macos-latest
+          #  config_name: ci/host_profile_arm64_tests
+          #- name: mac host release arm64 tests
+          #  os: macos-latest
+          #  config_name: ci/host_release_arm64_tests
+
+    steps:
+
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: checkout flutter
+        uses: ./.github/actions/apply-patches
+        with:
+          flutter_ref: ${{ github.ref }}
+
+      - name: mac build
+        uses: ./.github/actions/build-engine
+        with:
+          gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
+          gcp_bucket: flutter_builds
+          gclient: slim-mac
+          config_name: ${{ matrix.config_name }}
+          engine_version: ${{ github.sha }}
+
+
+  #build-engine-windows:
+    # We'll run on whatever OS the matrix entry specifies.
+  #  runs-on: ${{ matrix.os }}
+  #  defaults:
+  #    run:
+  #      shell: bash
+
+  #  strategy:
+  #    max-parallel: 4
+  #    matrix:
+  #      include:
+       # ------------------------- WINDOWS BUILDS -------------------------
+
+          # Engine tool doesn't currently support windows
+          #- name: Windows host release
+          #  config_name: host_release
+          #  os: windows-latest
+  #  steps:
+  #    - name: windows build
+  #      uses: ./.github/actions/build-engine
+  #      with:
+  #        gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
+  #        gclient: slim-windows
+  #        config_name: ${{ matrix.config_name }}
+  #        engine_version: ${{ github.sha }}
+
+  build-ios-release:
+    needs: build-engine-ios
+    runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+        with:
+          version: '>= 363.0.0'
+
+      - name: Setup gcloud
+        env:
+          GCP_CREDENTIALS: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
+        run: |
+          echo "$GCP_CREDENTIALS"  | base64 -d  > "$HOME"/gcloud.json
+          gcloud auth activate-service-account --key-file="$HOME"/gcloud.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Set up depot_tools / gclient
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git $HOME/depot_tools
+          # Append depot_tools to the PATH for subsequent steps
+          echo "$HOME/depot_tools" >> $GITHUB_PATH
+
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: checkout flutter
+        uses: ./.github/actions/apply-patches
+        with:
+          flutter_ref: ${{ github.ref }}
+          
+      # we need to include fushcia deps to complete this with dsym (weird right?)
+      - name: gclient sync macos
+        run: |
+          # Use custom gclient to trim size
+          cp flock/engine/scripts/slim-mac.gclient .gclient
+          gclient sync -D
+
+      - name: build ios release
+        run: |
+
+          cd flock/engine/src
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_profile.tar.gz' .
+          tar -xzf ios_profile.tar.gz
+          rm ios_profile.tar.gz
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_debug.tar.gz' .
+          tar -xzf ios_debug.tar.gz
+          rm ios_debug.tar.gz
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_release.tar.gz' .
+          tar -xzf ios_release.tar.gz
+          rm ios_release.tar.gz
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_debug_sim.tar.gz' .
+          tar -xzf ios_debug_sim.tar.gz
+          rm ios_debug_sim.tar.gz
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_debug_sim_arm64.tar.gz' .
+          tar -xzf ios_debug_sim_arm64.tar.gz
+          rm ios_debug_sim_arm64.tar.gz
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_release_extension_safe.tar.gz' .
+          tar -xzf ios_release_extension_safe.tar.gz
+          rm ios_release_extension_safe.tar.gz
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_debug_extension_safe.tar.gz' .
+          tar -xzf ios_debug_extension_safe.tar.gz
+          rm ios_debug_extension_safe.tar.gz
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_debug_sim_arm64_extension_safe.tar.gz' .
+          tar -xzf ios_debug_sim_arm64_extension_safe.tar.gz
+          rm  ios_debug_sim_arm64_extension_safe.tar.gz
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_debug_unopt_sim_arm64_extension_safe.tar.gz' .
+          tar -xzf ios_debug_unopt_sim_arm64_extension_safe.tar.gz
+          rm ios_debug_unopt_sim_arm64_extension_safe.tar.gz
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_debug_sim_extension_safe.tar.gz' .
+          tar -xzf ios_debug_sim_extension_safe.tar.gz
+          rm ios_debug_sim_extension_safe.tar.gz
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_profile_extension_safe.tar.gz' .
+          tar -xzf ios_profile_extension_safe.tar.gz
+          rm ios_profile_extension_safe.tar.gz
+
+          gcloud storage cp --recursive 'gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ci/ios_release_extension_safe.tar.gz' .
+          tar -xzf ios_release_extension_safe.tar.gz
+          rm ios_release_extension_safe.tar.gz
+
+
+          python3 flutter/sky/tools/create_ios_framework.py \
+          --dst out/ios \
+          --arm64-out-dir out/ci/ios_debug \
+          --simulator-x64-out-dir out/ci/ios_debug_sim \
+          --simulator-arm64-out-dir out/ci/ios_debug_sim_arm64 \
+          --dsym \
+          --strip
+
+          python3 flutter/sky/tools/create_ios_framework.py \
+          --dst out/ios_release \
+          --arm64-out-dir out/ci/ios_release \
+          --simulator-x64-out-dir out/ci/ios_debug_sim \
+          --simulator-arm64-out-dir out/ci/ios_debug_sim_arm64 \
+          --dsym \
+          --strip \
+
+          python3 flutter/sky/tools/create_ios_framework.py \
+          --dst out/ios_profile \
+          --arm64-out-dir out/ci/ios_profile \
+          --simulator-x64-out-dir out/ci/ios_debug_sim \
+          --simulator-arm64-out-dir out/ci/ios_debug_sim_arm64 \
+          --dsym \
+          --strip \
+
+          gcloud storage cp --recursive out/ios/ gs://flutter-builds/flutter_infra_release/flutter/engine//ios/
+          gcloud storage cp --recursive out/ios_release/ gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ios_release/
+          gcloud storage cp --recursive out/ios_profile/ gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ios_profile/
+
