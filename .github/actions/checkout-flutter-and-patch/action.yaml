@@ -6,7 +6,7 @@ inputs:
   flutter_repo:
     description: "the repo of flutter to use as a source"
     required: false
-    default: flutter/flutter
+    default: jezell/flutter
 
   flutter_ref:
     description: "the ref of flutter to checkout"
