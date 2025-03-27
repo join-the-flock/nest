@@ -41,3 +41,4 @@ index 6a210c9a01..54719e25fb 100644
  
    return ui.Offset(transformedPoint.x, transformedPoint.y);
  }
+ 
