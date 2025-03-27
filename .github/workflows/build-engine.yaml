@@ -659,4 +659,4 @@ jobs:
         uses: ./.github/actions/push-flock-repo
         with:
           destination_repo: jezell/flutter
-          destiantion_branch: nest-test-branch
+          destination_branch: nest-test-branch
