@@ -54,7 +54,8 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
-        path: ''
+        with:
+          path: ''
 
       - name: checkout flutter
         uses: ./.github/actions/apply-patches
