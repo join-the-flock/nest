@@ -66,7 +66,7 @@ jobs:
         uses: ./.github/actions/build-engine
         with:
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
-          gcp_bucket: flutter_builds
+          gcp_bucket: flutter-builds
           gclient: slim-linux-web
           config_name: ${{ matrix.config_name }}
           engine_version: ${{ github.sha }}
@@ -168,7 +168,7 @@ jobs:
         uses: ./.github/actions/build-engine
         with:
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
-          gcp_bucket: flutter_builds
+          gcp_bucket: flutter-builds
           gclient: slim-linux-android
           config_name: ${{ matrix.config_name }}
           engine_version: ${{ github.sha }}
@@ -383,7 +383,7 @@ jobs:
         uses: ./.github/actions/build-engine
         with:
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
-          gcp_bucket: flutter_builds
+          gcp_bucket: flutter-builds
           gclient: slim-mac
           config_name: ${{ matrix.config_name }}
           engine_version: ${{ github.sha }}
@@ -475,7 +475,7 @@ jobs:
         uses: ./.github/actions/build-engine
         with:
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
-          gcp_bucket: flutter_builds
+          gcp_bucket: flutter-builds
           gclient: slim-mac
           config_name: ${{ matrix.config_name }}
           engine_version: ${{ github.sha }}
