@@ -6,8 +6,9 @@ inputs:
     description: "the ref of the flutter repo to use as a base"
 
   token: 
-    required: true
+    required: false
     description: "access token"
+    default: ''
 
   email:
     required: true
