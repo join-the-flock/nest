@@ -636,27 +636,27 @@ jobs:
           gcloud storage cp --recursive out/ios_profile/ gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ios_profile/
 
 
-    # after we build the engine successfully, it's ok to push our branch
-    push-build:
-        # needs: build-engine-ios
-        runs-on: ubuntu-latest
-        defaults:
-          run:
-            shell: bash
+  # after we build the engine successfully, it's ok to push our branch
+  push-build:
+    # needs: build-engine-ios
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
 
-        steps:
-          - name: check out the repository
-            uses: actions/checkout@v4
+    steps:
+      - name: check out the repository
+        uses: actions/checkout@v4
 
-          - name: checkout flutter and apply patches
-            uses: ./.github/actions/apply-patches
-            with:
-              flutter_ref: ${{ github.ref }}
+      - name: checkout flutter and apply patches
+        uses: ./.github/actions/apply-patches
+        with:
+          flutter_ref: ${{ github.ref }}
 
-          # TODO: maybe we should we write an engine-version file to make it easier for flutter cli to find our version without mods?
-          
-          - name: push build to branch
-            uses: ./.github/actions/push-flock-repo
-            with:
-              destination_repo: jezell/flutter
-              destiantion_branch: nest-test-branch
+      # TODO: maybe we should we write an engine-version file to make it easier for flutter cli to find our version without mods?
+      
+      - name: push build to branch
+        uses: ./.github/actions/push-flock-repo
+        with:
+          destination_repo: jezell/flutter
+          destiantion_branch: nest-test-branch
