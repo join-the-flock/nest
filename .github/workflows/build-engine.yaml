@@ -546,11 +546,11 @@ jobs:
         with:
           flutter_ref: ${{ github.ref }}
           
-      # we need to include fushcia deps to complete this with dsym (weird right?)
       - name: gclient sync macos
         run: |
           # Use custom gclient to trim size
-          cp flock/engine/scripts/slim-mac.gclient .gclient
+          cd flock
+          cp engine/scripts/slim-mac.gclient .gclient
           gclient sync -D
 
       - name: build ios release
