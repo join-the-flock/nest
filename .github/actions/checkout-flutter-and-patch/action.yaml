@@ -32,3 +32,13 @@ runs:
         repository: ${{ inputs.flutter_repo }}
         ref: ${{ inputs.flutter_ref }}
         token: ${{ inputs.github_token }}
+
+
+    - name: ls
+      shell: bash
+      run: |
+        echo 'flock'
+        ls flock
+
+        echo 'engine'
+        ls flock/engine
