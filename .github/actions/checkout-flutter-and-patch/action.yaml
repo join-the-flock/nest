@@ -14,7 +14,7 @@ inputs:
   github_token:
     description: "the ref of flutter to checkout"
     required: false
-    default: ''
+    default: ${{ github.token }}
 
 runs:
   using: "composite"
