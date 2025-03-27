@@ -3,14 +3,6 @@ name: ""
 description: "Build the engine with a specific gclient setup and config name"
 inputs:
 
-  flutter_repo:
-    description: "the repo of flutter to use as a source"
-    required: true
-
-  flutter_ref:
-    description: "the ref of flutter to checkout"
-    required: true
-
   gclient:
     description: "name of gclient configuration to use"
     required: true
@@ -32,7 +24,6 @@ inputs:
     description: "the bucket to push builds to"
     required: false
     default: ''
-
 
 runs:
   using: "composite"
@@ -56,12 +47,6 @@ runs:
       if: contains(matrix.os, 'ubuntu')
       run: curl -fsSL https://raw.githubusercontent.com/kou/arrow/e49d8ae15583ceff03237571569099a6ad62be32/ci/scripts/util_free_space.sh | bash
 
-    - name: checkout
-      uses: ./.github/actions/checkout-flutter-and-patch
-      with:
-        flutter_ref: ${{ inputs.flutter_ref }}
-        flutter_repo: ${{ inputs.flutter_repo }}
-        
     - uses: actions/setup-python@v5
       with:
         python-version: '3.13'
