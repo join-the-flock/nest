@@ -1,0 +1,33 @@
+# .github/actions/checkout-flutter-and-patch/action.yml
+name: ""
+description: "Checkout a flutter repo and patch it. Patched flutter will be placed in the path 'flock'
+inputs:
+
+  flutter_repo:
+    description: "the repo of flutter to use as a source"
+    required: true
+
+  flutter_ref:
+    description: "the ref of flutter to checkout"
+    required: true
+
+  github_token:
+    description: "the ref of flutter to checkout"
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v2'
+      with:
+        version: '>= 363.0.0'
+
+    - name: Checkout Flutter
+      uses: actions/checkout@v4
+      with:
+        path: 'flock'
+        repository: ${{ inputs.flutter_repo }}
+        ref: ${{ inputs.flutter_ref }}
+        token: ${{ inputs.github_token }}
