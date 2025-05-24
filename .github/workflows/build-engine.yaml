@@ -8,6 +8,7 @@ on:
 env:
   # don't try to install google's internal copy of visual studio
   DEPOT_TOOLS_WIN_TOOLCHAIN: 0
+  FLOCK_REPO: ${{ vars.FLOCK_REPO }}
 
 jobs:
   build-engine-web:
@@ -664,5 +665,5 @@ jobs:
       - name: push build to branch
         uses: ./.github/actions/push-flock-repo
         with:
-          destination_repo: ${{ vars.FLOCK_REPO }}
+          destination_repo: ${{ env.FLOCK_REPO }}
           destination_branch: nest-test-branch

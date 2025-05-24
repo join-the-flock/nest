@@ -50,5 +50,5 @@ jobs:
       - name: push build to branch
         uses: ./.github/actions/push-flock-repo
         with:
-          destination_repo: ${{ vars.FLOCK_REPO }}
+          destination_repo: ${{ env.FLOCK_REPO }}
           destination_branch: nest-test-branch
