@@ -47,6 +47,8 @@ runs:
         ./flock/bin/internal/update_engine_version.sh
         cp ./flock/bin/cache/engine.stamp ./flock/bin/internal/engine.version
         git add -f ./flock/bin/internal/engine.version
+        git config --global user.email "flock@jointheflock.com"
+        git config --global user.name "Flock"
         git commit -m "save engine version"
     
     - name: apply nest patches to flutter
