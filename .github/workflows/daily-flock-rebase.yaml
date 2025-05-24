@@ -37,9 +37,6 @@ jobs:
       matrix: 
         config: [master, beta, stable]
 
-    env:
-      FLUTTER_BRANCH: ${{ matrix.config }}
-
     steps:
       - name: check out the repository
         uses: actions/checkout@v4
@@ -47,7 +44,7 @@ jobs:
       - name: checkout flutter and apply patches
         uses: ./.github/actions/apply-patches
         with:
-          flutter_ref: ${{ github.ref }}
+          flutter_ref: ${{ matrix.config }}
           token: ${{ secrets.REPO_WORKFLOW_PAT }}
 
       - name: push build to branch
