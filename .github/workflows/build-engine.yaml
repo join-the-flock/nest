@@ -661,7 +661,7 @@ jobs:
         run: |
           echo "${{ github.sha }}" > ./flock/bin/internal/engine.version
           git add -f ./flock/bin/internal/engine.version
-          git config --global user.email "flock@jointheflock.com"
+          git config --global user.email "no-reply@getflocked.dev"
           git config --global user.name "Flock"
           git commit -m "save engine version"
 
