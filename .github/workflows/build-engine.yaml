@@ -659,7 +659,7 @@ jobs:
         shell: bash
         run: |
           echo "${{ github.sha }}" > ./flock/bin/internal/engine.version
-          git add ./flock/bin/internal/engine.version
+          git add -f ./flock/bin/internal/engine.version
 
       - name: push build to branch
         uses: ./.github/actions/push-flock-repo
