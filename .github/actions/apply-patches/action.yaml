@@ -42,6 +42,7 @@ runs:
     
     # Compute an engine version hash so the flutter tool will be able to find a precompiled engine
     - name: save engine hash
+      shell: bash
       run: |
         ./bin/internal/update_engine_version.sh
         cp ./bin/cache/engine.stamp ./bin/internal/engine.version

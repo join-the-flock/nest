@@ -656,6 +656,7 @@ jobs:
 
       # Compute an engine version hash so the flutter tool will be able to find a precompiled engine
       - name: save engine hash
+        shell: bash
         run: |
           echo "${{ github.sha }}" > ./bin/internal/engine.version
           git add ./bin/internal/engine.version
