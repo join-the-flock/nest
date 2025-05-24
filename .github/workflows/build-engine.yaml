@@ -661,6 +661,7 @@ jobs:
         run: |
           echo "${{ github.sha }}" > ./flock/bin/internal/engine.version
           git add -f ./flock/bin/internal/engine.version
+          git commit -m "save engine version"
 
       - name: push build to branch
         uses: ./.github/actions/push-flock-repo
