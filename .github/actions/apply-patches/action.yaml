@@ -44,9 +44,9 @@ runs:
     - name: save engine hash
       shell: bash
       run: |
-        ./bin/internal/update_engine_version.sh
-        cp ./bin/cache/engine.stamp ./bin/internal/engine.version
-        git add ./bin/internal/engine.version
+        ./flock/bin/internal/update_engine_version.sh
+        cp ./flock/bin/cache/engine.stamp ./flock/bin/internal/engine.version
+        git add ./flock/bin/internal/engine.version
     
     - name: apply nest patches to flutter
       shell: bash

@@ -658,8 +658,8 @@ jobs:
       - name: save engine hash
         shell: bash
         run: |
-          echo "${{ github.sha }}" > ./bin/internal/engine.version
-          git add ./bin/internal/engine.version
+          echo "${{ github.sha }}" > ./flock/bin/internal/engine.version
+          git add ./flock/bin/internal/engine.version
 
       - name: push build to branch
         uses: ./.github/actions/push-flock-repo
