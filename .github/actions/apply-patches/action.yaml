@@ -44,9 +44,11 @@ runs:
     - name: save engine hash
       shell: bash
       run: |
-        ./flock/bin/internal/update_engine_version.sh
-        cp ./flock/bin/cache/engine.stamp ./flock/bin/internal/engine.version
-        git add -f ./flock/bin/internal/engine.version
+        cd ./flock
+        ./bin/internal/update_engine_version.sh
+        cp ./bin/cache/engine.stamp ./bin/internal/engine.version
+      
+        git add -f ./bin/internal/engine.version
         git config --global user.email "no-reply@getflocked.dev"
         git config --global user.name "Flock"
         git commit -m "save engine version"
