@@ -2,9 +2,9 @@ name: Build Flutter Engine with Engine Tool (Matrix)
 
 on:
   push:
-    branches: [ "main", "stable", "beta", "engine-builds" ]
+    branches: [ "engine-builds" ]
   pull_request:
-    branches: [ "main", "stable", "beta", "engine-builds" ]
+    branches: [ "engine-builds" ]
 env:
   # don't try to install google's internal copy of visual studio
   DEPOT_TOOLS_WIN_TOOLCHAIN: 0
@@ -654,8 +654,12 @@ jobs:
           flutter_ref: ${{ github.ref }}
           token: ${{ secrets.REPO_WORKFLOW_PAT }}
 
-      # TODO: maybe we should we write an engine-version file to make it easier for flutter cli to find our version without mods?
-      
+      # Compute an engine version hash so the flutter tool will be able to find a precompiled engine
+      - name: save engine hash
+        run: |
+          echo "${{ github.sha }}" > ./bin/internal/engine.version
+          git add ./bin/internal/engine.version
+
       - name: push build to branch
         uses: ./.github/actions/push-flock-repo
         with:

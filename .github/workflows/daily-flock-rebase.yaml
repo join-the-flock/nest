@@ -41,124 +41,17 @@ jobs:
       FLUTTER_BRANCH: ${{ matrix.config }}
 
     steps:
-      - name: Pre-Flight Checks
-        run: |
-          echo "Flock Repository: ${{ env.FLOCK_REPO }}"
-          echo "Flutter branch: ${{ env.FLUTTER_BRANCH }}"
-
-      - name: Checkout Nest (this repo)
+      - name: check out the repository
         uses: actions/checkout@v4
+
+      - name: checkout flutter and apply patches
+        uses: ./.github/actions/apply-patches
         with:
-          path: 'nest'
-          fetch-depth: 0 # Checkout everything to get access to the tags
-          repository: ${{ github.repository }}
-          ref: ${{ env.FLUTTER_BRANCH == 'master' && 'main' || env.FLUTTER_BRANCH }}
-          token: ${{ env.GITHUB_PAT }}
+          flutter_ref: ${{ github.ref }}
+          token: ${{ secrets.REPO_WORKFLOW_PAT }}
 
-      - name: Checkout Flock
-        uses: actions/checkout@v4
+      - name: push build to branch
+        uses: ./.github/actions/push-flock-repo
         with:
-          path: 'nest/flock'
-          fetch-depth: 0 # Checkout everything to get access to the tags
-          repository: ${{ env.FLOCK_REPO }}
-          ref: ${{ env.FLUTTER_BRANCH }}
-          token: ${{ env.GITHUB_PAT }}
-
-      - name: Fetch Flutter branch
-        working-directory: nest/flock
-        run: |
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-          git config --global user.name "${{ github.actor }}"
-
-          # Setup upstream to Flutter and fetch the latest from the desired branch.
-          git remote add upstream https://github.com/flutter/flutter.git
-          git fetch upstream ${{ env.FLUTTER_BRANCH }}
-
-      - name: Lookup Flutter branch tag (beta, stable)
-        if: ${{ env.FLUTTER_BRANCH == 'beta' || env.FLUTTER_BRANCH == 'stable' }}
-        working-directory: nest/flock
-        run: |
-          commit=$(git ls-remote upstream refs/heads/${{ env.FLUTTER_BRANCH }} | awk '{print $1}')
-          tag=$(git ls-remote --tags upstream | grep "$commit" | awk -F'/' '{print $NF}')
-          
-          echo "${{ env.FLUTTER_BRANCH }} commit: $commit"
-          echo "${{ env.FLUTTER_BRANCH }} tag: $tag"
-          echo "tag=$tag" >> $GITHUB_ENV
-
-      - name: Delete Flock branch, recreate, replay Flock
-        working-directory: nest/flock
-        run: |
-          # Checkout a temporary branch so we can manipulate Flock.
-          git checkout -b temp
-
-          # Delete Flock branch
-          git branch -D ${{ env.FLUTTER_BRANCH }}
-
-          # Get fresh version from Flutter.
-          git switch -c ${{ env.FLUTTER_BRANCH }} upstream/${{ env.FLUTTER_BRANCH}}
-
-          # Switch back to the refreshed desired branch.
-          git checkout ${{ env.FLUTTER_BRANCH }}
-
-      - name: Tag latest master commit
-        if: ${{ env.FLUTTER_BRANCH == 'master' }}
-        working-directory: nest/flock
-        run: |
-          # Normally, Flutter looks for an engine version with the same hash as the
-          # latest commit. But with Flock, the Flock commits are always the latest,
-          # and there is no corresponding engine build. To work around this, we tag
-          # Flutter's latest commit on `master`, and then we adjust the script at
-          # `bin/internal/update_dart_sdk.sh` to use the tagged hash for the engine.
-          echo "Tagging most recent Flutter commit (flock-engine-hash): $(git rev-parse HEAD)"
-
-          git tag -d flock-engine-hash
-          git tag -a flock-engine-hash -m "Engine hash for Flock"
-
-          git show flock-engine-hash
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Apply Nest patches to Flock
-        run: |
-          echo "Apply patches..."
-          cd nest
-          ./tools/git-import-patches patches
-
-      - name: Apply Flutter branch tag to Flock (beta, stable)
-        if: ${{ env.FLUTTER_BRANCH == 'beta' || env.FLUTTER_BRANCH == 'stable' }}
-        working-directory: nest/flock
-        run: |
-          echo "Tagging latest ${{ env.FLUTTER_BRANCH }} commit (${{ env.tag }})..."
-          echo "Flock ${{ env.FLUTTER_BRANCH }} head commit: $(git rev-parse HEAD)"
-          echo "Tag: ${{ env.tag }}"
-          git tag -f -a ${{ env.tag }} -m "Flock ${{ env.tag }}"
-
-      - name: Force push updated branch to Flock
-        working-directory: nest/flock
-        run: |
-          # Store the PAT in a file that can be accessed by the
-          # GitHub CLI.
-          echo "$GITHUB_PAT" > token.txt
-
-          # Authorize GitHub CLI for the current repository and
-          # create a pull-requests containing the updates.
-          gh auth login --with-token < token.txt
-
-          # Replace the previous Flock master branch with our updated branch.
-          git push -f origin ${{ env.FLUTTER_BRANCH }}
-      
-      - name: Push the Flock engine tag (master)
-        if: ${{ env.FLUTTER_BRANCH == 'master' }}
-        working-directory: nest/flock
-        run: |
-          git push -f origin flock-engine-hash
-
-      - name: Replace Flutter tag with Flock tag (beta, stable)
-        if: ${{ env.FLUTTER_BRANCH == 'beta' || env.FLUTTER_BRANCH == 'stable' }}
-        working-directory: nest/flock
-        run: |
-          git push -f origin ${{ env.tag }}
-  
+          destination_repo: ${{ vars.FLOCK_REPO }}
+          destination_branch: nest-test-branch

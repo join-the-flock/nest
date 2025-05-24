@@ -40,6 +40,13 @@ runs:
         ref: '${{inputs.flutter_ref}}'
         token: ${{ inputs.token }}
     
+    # Compute an engine version hash so the flutter tool will be able to find a precompiled engine
+    - name: save engine hash
+      run: |
+        ./bin/internal/update_engine_version.sh
+        cp ./bin/cache/engine.stamp ./bin/internal/engine.version
+        git add ./bin/internal/engine.version
+    
     - name: apply nest patches to flutter
       shell: bash
       run: |
