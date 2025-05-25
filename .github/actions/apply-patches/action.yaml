@@ -49,8 +49,8 @@ runs:
         cp ./bin/cache/engine.stamp ./bin/internal/engine.version
       
         git add -f ./bin/internal/engine.version
-        git config --global user.email "no-reply@getflocked.dev"
-        git config --global user.name "Flock"
+        git config --global user.email "${{ inputs.email }}"
+        git config --global user.name "${{ inputs.user_name }}"
         git commit -m "save engine version"
     
     - name: apply nest patches to flutter

@@ -51,4 +51,4 @@ jobs:
         uses: ./.github/actions/push-flock-repo
         with:
           destination_repo: ${{ env.FLOCK_REPO }}
-          destination_branch: nest-test-branch
+          destination_branch: ${{ matrix.config }}
