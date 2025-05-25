@@ -8,20 +8,20 @@ Changes made:
 * Update the Git URL used to determine the Flutter version to Flock
 
 diff --git a/packages/flutter_tools/lib/src/version.dart b/packages/flutter_tools/lib/src/version.dart
-index 69971db78a6370b778071a97e9209b8a9af67264..82d2f0188d915649bc3ff866f9b6289442ecbf1e 100644
+index 4902f732ea..b9c4e4e222 100644
 --- a/packages/flutter_tools/lib/src/version.dart
 +++ b/packages/flutter_tools/lib/src/version.dart
-@@ -730,6 +730,9 @@ class VersionUpstreamValidator {
+@@ -731,6 +731,9 @@ class VersionUpstreamValidator {
      'https://github.com/flutter/flutter.git',
      'git@github.com:flutter/flutter.git',
      'ssh://git@github.com/flutter/flutter.git',
 +    'https://github.com/join-the-flock/flock.git',
 +    'git@github.com:join-the-flock/flock.git',
-+    'ssh://git@github.com/join-the-flock/flock.git',
++    'ssh://git@github.com/join-the-flock/flock.git'
    ];
  
    // Strips ".git" suffix from a given string, preferably an url.
-@@ -986,7 +989,7 @@ class GitTagVersion {
+@@ -987,7 +990,7 @@ class GitTagVersion {
          globals.printTrace('Skipping request to fetchTags - on well known channel $channel.');
        } else {
          final String flutterGit =
