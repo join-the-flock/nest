@@ -1,15 +1,54 @@
+# This workflow looks for changes to Flock patches within Nest, and then
+# creates or updates a parallel PR in the Flock repository.
+#
+# Flock patches live in the Nest repository so that Flock's history can be
+# rebased and reconstituted automatically.
+#
+# Nest accumulates changes to Flutter in the form of patch files. These patch
+# files are played on top of Flutter to create a version called Flock. Reviewing
+# patch files in isolation is counterproductive, because developers can't see
+# any of the code around the changes. This workflow takes the patches in the
+# Nest repository, plays them on top of Flutter, and then generates a linked
+# PR in the Flock repository that shows the actual differences caused by the
+# new patches.
+#
+# If a PR is submitted to Nest without any changes to patches, then this
+# workflow aborts.
+#
+# After this workflow runs, go to github.com/join-the-flock/flock and locate
+# the new PR with the Flutter diff. Review the changes there. When satisfied
+# with the changes, close the PR in Flock, and merge the PR in Nest.
+#
+# The PR that's generated in the Flock repository is created on behalf of
+# whichever user submitted the PR that ran this workflow.
+
 on:
-  pull_request:
-    types: [opened, reopened]
+  pull_request_target:
+    # This workflow handles new Nest PRs, as well as PR changes, and re-opened PRs.
+    types: [opened, synchronize, reopened]
     branches:
       - main
 
-name: create-flock-pr-from-nest-patch
+# Update these variables to fit your custom fork configuration.
+env:
+  # GitHub path to official Flutter repository.
+  FLUTTER_REPO: "flutter/flutter"
+
+  # The GitHub location of your Flutter fork.
+  FLOCK_REPO: "join-the-flock/flock"
+
+  # A Personal Access Token (PAT) so that this action can create and force-push PRs.
+  GITHUB_PAT: ${{ secrets.REPO_WORKFLOW_PAT }}
+
+  # The Flutter branch that the patches apply to.
+  FLUTTER_BRANCH: "master"
+
+name: create-and-update-flock-pr-from-nest-patch
 permissions:
   contents: write
 
 jobs:
-  create-flock-pr-from-nest-patch:
+  create-and-update-flock-pr-from-nest-patch:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Nest
@@ -17,55 +56,146 @@ jobs:
         with:
           path: 'nest'
           fetch-depth: 0 # Checkout everything to get access to the tags
-          repository: 'join-the-flock/nest'
+          repository: ${{github.repository}}
           ref: ${{github.event.pull_request.head.ref}}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ env.GITHUB_PAT }}
 
-      - name: Checkout Flock
+      - name: Look for Flock patch changes
+        run: |
+          cd nest
+          git fetch origin ${{ github.base_ref }}
+          if git diff --quiet origin/${{ github.base_ref }}...HEAD -- patches/; then
+            echo "No changes to Flock patches. Exiting workflow."
+            echo "has_patch_changes=false" >> $GITHUB_ENV
+          else
+            echo "This PR includes Flock patch changes. Creating Flock PR for review."
+            echo "has_patch_changes=true" >> $GITHUB_ENV
+          fi
+
+      - name: Checkout Flutter
+        if: env.has_patch_changes == 'true'
         uses: actions/checkout@v4
         with:
           path: 'nest/flock'
           fetch-depth: 0 # Checkout everything to get access to the tags
-          repository: 'join-the-flock/flock'
-          ref: 'master'
-          token: ${{ secrets.REPO_WORKFLOW_PAT }}
+          repository: ${{ env.FLUTTER_REPO }}
+          ref: ${{ env.FLUTTER_BRANCH }}
+          token: ${{ env.GITHUB_PAT }}
+      
+      - name: Change Flutter remote origin to Flock
+        if: env.has_patch_changes == 'true'
+        working-directory: nest/flock
+        run: |
+          echo "Changing git origin from Flutter to Flock"
+          initial_remote=$(git remote get-url origin)
+          echo "Initial remote is: $initial_remote"
+
+          git remote set-url origin https://github.com/${{ env.FLOCK_REPO }}
+
+          new_remote=$(git remote get-url origin)
+          echo "New remote is: $new_remote"
 
       - name: Create branch for Flock PR
+        if: env.has_patch_changes == 'true'
         working-directory: nest/flock
         run: |
           git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
           git config --global user.name "${{ github.actor }}"
+
           git checkout -b ${{github.event.pull_request.head.ref}}
 
       - name: Setup Python
+        if: env.has_patch_changes == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Apply Nest patches to Flock
+      - name: Apply Nest patches to Flutter
+        if: env.has_patch_changes == 'true'
         run: |
+          echo "Apply patches..."
           cd nest
+
+          cd flock
+          echo "History before applying patches:"
+          git log -n 5 --pretty=format:"%h - %an: %s"
+          echo "Git Status:"
+          git status
+          cd ..
+
+          echo ""
+          echo "Applying patches..."
           tools/git-import-patches patches
+          echo ""
+
+          cd flock
+          echo "History after applying patches:"
+          git log -n 5 --pretty=format:"%h - %an: %s"
+          echo "Git Status:"
+          git status
 
       - name: Push Flock changes to Flock repo for PR
+        if: env.has_patch_changes == 'true'
         working-directory: nest/flock
         run: |
           # Store the PAT in a file that can be accessed by the
           # GitHub CLI.
-          echo "${{ secrets.REPO_WORKFLOW_PAT }}" > token.txt
-
-          git push origin ${{github.event.pull_request.head.ref}}
+          echo "$GITHUB_PAT" > token.txt
 
           # Authorize GitHub CLI for the current repository and
           # create a pull-requests containing the updates.
           gh auth login --with-token < token.txt
 
-          # Save the PR description to a file so that we can insert newlines.
-          echo -e "${{ github.event.pull_request.body }}\n\n---\n\nThis Flock PR is derived from the patch in the following Nest PR: \n${{ github.event.pull_request.url }}" > pr_description.txt
+          echo "Working directory: `pwd`"
+          echo "Git remote:"
+          echo `git remote -v`
+          echo "Looking for branch: ${{github.event.pull_request.head.ref}}"
+          echo "PR list search:"
+          list_output=$(gh pr list --state open --base ${{ env.FLUTTER_BRANCH }} --head ${{github.event.pull_request.head.ref}} --repo ${{ env.FLOCK_REPO }})
+          echo "$list_output"
+          echo "----"
 
-          # Create the PR.
-          gh pr create \
-            --title "${{ github.event.pull_request.title }}" \
-            --body-file "pr_description.txt" \
-            --head "${{ github.event.pull_request.head.ref }}" \
-            --base "master"
+          pr_exists=$(gh pr list \
+            --state open \
+            --base ${{ env.FLUTTER_BRANCH }} \
+            --head ${{github.event.pull_request.head.ref}} \
+            --repo ${{ env.FLOCK_REPO }} \
+            --json number \
+            --jq '.[0].number'\
+          )
+
+          # If a PR exists, inform the user. Otherwise, create a new PR.
+          if [ -n "$pr_exists" ]; then
+            # Force push to the existing PR branch.
+            git push -f origin ${{github.event.pull_request.head.ref}}
+
+            echo "Flock PR already exists, and it was updated with a force push."
+          else
+            echo "Flock PR doesn't exist yet. Creating it."
+
+            # Save the PR description to a file so that we can insert newlines.
+            echo "Generating PR description and saving to file..."
+            echo "--"
+            printf " - original pull request URL: ${{ github.event.pull_request.url }}\n"
+            echo "--"
+            printf " - original pull request body: ${{ github.event.pull_request.body }}\n"
+            echo "--"
+
+            printf "${{ github.event.pull_request.body }}\n\n---\n\nThis Flock PR is derived from the patch in the following Nest PR: \n${{ github.event.pull_request.url }}" > pr_description.txt
+
+            cat pr_description.txt
+            echo ""
+
+            # Create the PR.
+            echo "Creating a PR..."
+            echo " - title: ${{ github.event.pull_request.title }}"
+            echo " - head: ${{ github.event.pull_request.head.ref }}"
+            echo " - base: ${{ env.FLUTTER_BRANCH }}"
+            echo ""
+            
+            gh pr create \
+              --title "${{ github.event.pull_request.title }}" \
+              --body-file "pr_description.txt" \
+              --head ${{ github.event.pull_request.head.ref }} \
+              --base ${{ env.FLUTTER_BRANCH }}
+          fi
