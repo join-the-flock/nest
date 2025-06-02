@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Jesse Ezell <jezell@users.noreply.github.com>
-Date: Sun, 2 June 2025 14:49:01 -0800
+Date: Sun, 2 Jun 2025 14:49:01 -0800
 Subject: Fix iOS builds
 
 diff --git a/engine/src/flutter/shell/platform/darwin/common/framework/Source/Logger.swift b/engine/src/flutter/shell/platform/darwin/common/framework/Source/Logger.swift
@@ -18,3 +18,4 @@ index 089b2068a3..2d0f7db8ba 100644
 +    }
    }
  }
+
