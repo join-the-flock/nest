@@ -56,23 +56,28 @@ jobs:
 
       # outputs:
       # out/host_debug_unopt/zip_archives/flutter_gpu.zip
-      - name: Build sky_engine.zip
+      - name: Build flutter_gpu
         run: |
+          cd flock/engine/src
+          ./flutter/tools/gn --android --unoptimized
           ninja -C out/host_debug_unopt //flutter/lib/gpu/dist:zip
-          gcloud storage cp --recursive out/host_debug_unopt/flutter_gpu.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/flutter_gpu.zip
+          gcloud storage cp --recursive out/host_debug_unopt/zip_archives/flutter_gpu.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/flutter_gpu.zip
 
       # outputs
       # out/host_debug_unopt/zip_archives/sky_engine.zip
-      - name: Build sky_engine.zip
+      - name: Build sky_engine
         run: |
+          cd flock/engine/src
+          ./flutter/tools/gn --android --unoptimized
           ninja -C out/host_debug_unopt flutter/sky/dist:zip_old_location
-          gcloud storage cp --recursive out/host_debug_unopt/sky_engine.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/sky_engine.zip
+          gcloud storage cp --recursive out/host_debug_unopt/zip_archives/sky_engine.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/sky_engine.zip
       
       # Outputs:
       # out/host_debug_unopt/flutter_patched_sdk.zip
       
       - name: Build flutter_patched_sdk
         run: |
+          cd flock/engine/src
           /flutter/tools/gn --unoptimized --runtime-mode=debug
           ninja -C out/host_debug_unopt flutter_patched_sdk
           gcloud storage cp --recursive out/host_debug_unopt/flutter_patched_sdk.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/flutter_patched_sdk.zip
@@ -81,6 +86,7 @@ jobs:
       # out/host_release/flutter_patched_sdk_product.zip
       - name: Build flutter_patched_sdk_product
         run: |
+          cd flock/engine/src
           ./flutter/tools/gn --runtime-mode=release   
           ninja -C out/host_release flutter_patched_sdk
           gcloud storage cp --recursive out/host_release/flutter_patched_sdk_product.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/flutter_patched_sdk_product.zip
@@ -89,6 +95,7 @@ jobs:
       # out/wasm_release/zip_archives/flutter-web-sdk.zip
       - name: Build flutter_web_sdk
         run: | 
+          cd flock/engine/src
           ./flutter/tools/gn --wasm --runtime-mode=release --no-goma
           ninja -C out/wasm_release flutter/web_sdk:flutter_web_sdk_archive
           gcloud storage cp --recursive out/wasm_release/zip_archives/flutter-web-sdk.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/flutter_web_sdk.zip
