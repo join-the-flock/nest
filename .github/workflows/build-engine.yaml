@@ -13,7 +13,7 @@ env:
   FLUTTER_BRANCH: master
 
 jobs:
-  build-patched-sdk:
+  build-misc-zip-archives:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -54,11 +54,17 @@ jobs:
           cp engine/scripts/slim-linux-android.gclient .gclient
           gclient sync -D
 
+      - name: install sysroot
+        run: |
+          cd flock
+          ./engine/src/build/linux/sysroot_scripts/install-sysroot.py --arch=x64
+
       # outputs:
       # out/host_debug_unopt/zip_archives/flutter_gpu.zip
       - name: Build flutter_gpu
         run: |
           cd flock/engine/src
+         
           ./flutter/tools/gn --android --unoptimized
           ninja -C out/host_debug_unopt //flutter/lib/gpu/dist:zip
           gcloud storage cp --recursive out/host_debug_unopt/zip_archives/flutter_gpu.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/flutter_gpu.zip
