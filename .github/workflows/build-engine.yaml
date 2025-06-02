@@ -12,6 +12,81 @@ env:
   FLOCK_BRANCH: ${{ github.ref }}
 
 jobs:
+  build-patched-sdk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    
+    steps:
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+        with:
+          version: '>= 363.0.0'
+
+      - name: Setup gcloud
+        env:
+          GCP_CREDENTIALS: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
+        run: |
+          echo "$GCP_CREDENTIALS"  | base64 -d  > "$HOME"/gcloud.json
+          gcloud auth activate-service-account --key-file="$HOME"/gcloud.json
+
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: checkout flutter and apply patches
+        uses: ./.github/actions/apply-patches
+        with:
+          flutter_ref: ${{ github.ref }}
+
+      - name: gclient sync
+        run: |
+          # Use custom gclient to trim size
+          cd flock
+          cp engine/scripts/slim-linux-android.gclient .gclient
+          gclient sync -D
+
+      # outputs:
+      # out/host_debug_unopt/zip_archives/flutter_gpu.zip
+      - name: Build sky_engine.zip
+        run: |
+          ninja -C out/host_debug_unopt //flutter/lib/gpu/dist:zip
+          gcloud storage cp --recursive out/host_debug_unopt/flutter_gpu.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/flutter_gpu.zip
+
+      # outputs
+      # out/host_debug_unopt/zip_archives/sky_engine.zip
+      - name: Build sky_engine.zip
+        run: |
+          ninja -C out/host_debug_unopt flutter/sky/dist:zip_old_location
+          gcloud storage cp --recursive out/host_debug_unopt/sky_engine.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/sky_engine.zip
+      
+      # Outputs:
+      # out/host_debug_unopt/flutter_patched_sdk.zip
+      
+      - name: Build flutter_patched_sdk
+        run: |
+          /flutter/tools/gn --unoptimized --runtime-mode=debug
+          ninja -C out/host_debug_unopt flutter_patched_sdk
+          gcloud storage cp --recursive out/host_debug_unopt/flutter_patched_sdk.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/flutter_patched_sdk.zip
+      
+      # Outputs
+      # out/host_release/flutter_patched_sdk_product.zip
+      - name: Build flutter_patched_sdk_product
+        run: |
+          ./flutter/tools/gn --runtime-mode=release   
+          ninja -C out/host_release flutter_patched_sdk
+          gcloud storage cp --recursive out/host_release/flutter_patched_sdk_product.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/flutter_patched_sdk_product.zip
+
+      # Outputs
+      # out/wasm_release/zip_archives/flutter-web-sdk.zip
+      - name: Build flutter_web_sdk
+        run: | 
+          ./flutter/tools/gn --wasm --runtime-mode=release --no-goma
+          ninja -C out/wasm_release flutter/web_sdk:flutter_web_sdk_archive
+          gcloud storage cp --recursive out/wasm_release/zip_archives/flutter-web-sdk.zip gs://flutter-builds/flutter_infra_release/flutter/${{github.sha}}/flutter_web_sdk.zip
+
+
   build-engine-web:
     # We'll run on whatever OS the matrix entry specifies.
     runs-on: ${{ matrix.os }}
@@ -63,7 +138,7 @@ jobs:
         uses: ./.github/actions/apply-patches
         with:
           flutter_ref: ${{ github.ref }}
-
+    
       - name: web build
         uses: ./.github/actions/build-engine
         with:
@@ -633,7 +708,7 @@ jobs:
           --dsym \
           --strip \
 
-          gcloud storage cp --recursive out/ios/ gs://flutter-builds/flutter_infra_release/flutter/engine//ios/
+          gcloud storage cp --recursive out/ios/ gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ios/
           gcloud storage cp --recursive out/ios_release/ gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ios_release/
           gcloud storage cp --recursive out/ios_profile/ gs://flutter-builds/flutter_infra_release/flutter/engine/${{github.sha}}/ios_profile/
 

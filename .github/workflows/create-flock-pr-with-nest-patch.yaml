@@ -125,7 +125,7 @@ jobs:
 
           echo ""
           echo "Applying patches..."
-          tools/git-import-patches patches
+          tools/git-import-patches -p patches
           echo ""
 
           cd flock

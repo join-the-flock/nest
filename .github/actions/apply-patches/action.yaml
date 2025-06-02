@@ -58,4 +58,4 @@ runs:
       run: |
         git config --global user.email "${{ inputs.email }}"
         git config --global user.name "${{ inputs.user_name }}"
-        tools/git-import-patches patches
+        tools/git-import-patches -p patches
