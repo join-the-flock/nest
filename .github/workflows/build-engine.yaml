@@ -33,6 +33,12 @@ jobs:
           echo "$GCP_CREDENTIALS"  | base64 -d  > "$HOME"/gcloud.json
           gcloud auth activate-service-account --key-file="$HOME"/gcloud.json
 
+      - name: Set up depot_tools / gclient
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git $HOME/depot_tools
+          # Append depot_tools to the PATH for subsequent steps
+          echo "$HOME/depot_tools" >> $GITHUB_PATH
+
       - name: Check out the repository
         uses: actions/checkout@v4
 
