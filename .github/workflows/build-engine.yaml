@@ -10,6 +10,7 @@ env:
   DEPOT_TOOLS_WIN_TOOLCHAIN: 0
   FLOCK_REPO: ${{ vars.FLOCK_REPO }}
   FLOCK_BRANCH: ${{ github.ref }}
+  FLUTTER_BRANCH: master
 
 jobs:
   build-patched-sdk:
@@ -38,7 +39,7 @@ jobs:
       - name: checkout flutter and apply patches
         uses: ./.github/actions/apply-patches
         with:
-          flutter_ref: ${{ github.ref }}
+          flutter_ref: ${{ env.FLUTTER_BRANCH }}
 
       - name: gclient sync
         run: |
@@ -137,7 +138,7 @@ jobs:
       - name: checkout flutter and apply patches
         uses: ./.github/actions/apply-patches
         with:
-          flutter_ref: ${{ github.ref }}
+          flutter_ref: ${{ env.FLUTTER_BRANCH }}
     
       - name: web build
         uses: ./.github/actions/build-engine
@@ -239,7 +240,7 @@ jobs:
       - name: checkout flutter and apply patches
         uses: ./.github/actions/apply-patches
         with:
-          flutter_ref: ${{ github.ref }}
+          flutter_ref: ${{ env.FLUTTER_BRANCH }}
 
       - name: android build
         uses: ./.github/actions/build-engine
@@ -312,7 +313,7 @@ jobs:
       - name: checkout flutter and apply patches
         uses: ./.github/actions/apply-patches
         with:
-          flutter_ref: ${{ github.ref }}
+          flutter_ref: ${{ env.FLUTTER_BRANCH }}
 
       - name: linux build
         uses: ./.github/actions/build-engine
@@ -454,7 +455,7 @@ jobs:
       - name: checkout flutter and apply patches
         uses: ./.github/actions/apply-patches
         with:
-          flutter_ref: ${{ github.ref }}
+          flutter_ref: ${{ env.FLUTTER_BRANCH }}
 
       - name: mac build
         uses: ./.github/actions/build-engine
@@ -546,7 +547,7 @@ jobs:
       - name: checkout flutter and apply patches
         uses: ./.github/actions/apply-patches
         with:
-          flutter_ref: ${{ github.ref }}
+          flutter_ref: ${{ env.FLUTTER_BRANCH }}
 
       - name: mac build
         uses: ./.github/actions/build-engine
@@ -621,7 +622,7 @@ jobs:
       - name: checkout flutter and apply patches
         uses: ./.github/actions/apply-patches
         with:
-          flutter_ref: ${{ github.ref }}
+          flutter_ref: ${{ env.FLUTTER_BRANCH }}
           
       - name: gclient sync macos
         run: |
@@ -728,7 +729,7 @@ jobs:
       - name: checkout flutter and apply patches
         uses: ./.github/actions/apply-patches
         with:
-          flutter_ref: ${{ github.ref }}
+          flutter_ref: ${{ env.FLUTTER_BRANCH }}
           token: ${{ secrets.REPO_WORKFLOW_PAT }}
 
       # Compute an engine version hash so the flutter tool will be able to find a precompiled engine
