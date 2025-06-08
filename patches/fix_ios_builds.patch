@@ -4,36 +4,58 @@ Date: Sun, 2 Jun 2025 14:49:01 -0800
 Subject: Fix iOS builds
 
 diff --git a/engine/src/flutter/shell/platform/darwin/common/framework/Source/Logger.swift b/engine/src/flutter/shell/platform/darwin/common/framework/Source/Logger.swift
-index 089b2068a3..5f6b713c43 100644
+index 089b2068a3..3ef1593685 100644
 --- a/engine/src/flutter/shell/platform/darwin/common/framework/Source/Logger.swift
 +++ b/engine/src/flutter/shell/platform/darwin/common/framework/Source/Logger.swift
-@@ -4,6 +4,7 @@
- 
+@@ -5,6 +5,8 @@
  import Darwin
  import Foundation
-+import os
  
++import os
++
  /// The level of logging severity.
  ///
-@@ -117,10 +118,18 @@ public protocol OutputWriter {
+ /// These levels are used by `Logger` to determine if a message should be output.
+@@ -116,18 +118,32 @@ public protocol OutputWriter {
+   func writeLine(level: LogLevel, _ message: String)
  }
  
- final class SyslogOutputWriter: OutputWriter {
-+  private static let log = Logger(
+-final class SyslogOutputWriter: OutputWriter {
+-  func writeLine(level: LogLevel, _ message: String) {
+-    // TODO(cbracken): replace this with os_log-based approach.
+-    // https://github.com/flutter/flutter/issues/44030
+-    message.withCString { vsyslog(LOG_ALERT, "%s", getVaList([$0])) }
++
++/// Maps your existing `LogLevel` enum to Unified-Logging severities.
++/// Adjust the mapping to taste.
++private extension LogLevel {
++  var osType: OSLogType {
++    switch self {
++    case .info:      return .info
++    case .warning:   return .default
++    case .error:     return .error
++    case .important: return .fault   // or .notice, depending on semantics
++    }
+   }
+ }
+ 
+-final class StdoutOutputWriter: OutputWriter {
++/// Writes to the system log using Unified Logging.
++/// The log is visible in Console.app (macOS) or via `log stream` on iOS.
++final class SyslogOutputWriter: OutputWriter {
++
++  /// One static `OSLog` (or Swift-5.5 `Logger`) per subsystem/category pair
++  private static let log = OSLog(
 +    subsystem: Bundle.main.bundleIdentifier ?? "org.flutter",
 +    category: "flutter"
 +  )
 +
    func writeLine(level: LogLevel, _ message: String) {
--    // TODO(cbracken): replace this with os_log-based approach.
--    // https://github.com/flutter/flutter/issues/44030
--    message.withCString { vsyslog(LOG_ALERT, "%s", getVaList([$0])) }
-+    switch level {
-+    case .info:      Self.log.info("\(message, privacy: .public)")
-+    case .warning:   Self.log.notice("\(message, privacy: .public)")
-+    case .error:     Self.log.error("\(message, privacy: .public)")
-+    case .important: Self.log.fault("\(message, privacy: .public)")
-+    }
+-    fputs(message, stdout)
+-    fputs("\n", stdout)
+-    fflush(stdout)
++    // `%{public}@` = do not redact at runtime; use `%{private}@` for sensitive data
++    os_log("%{public}@", log: Self.log, type: level.osType, message)
    }
  }
- 
+
