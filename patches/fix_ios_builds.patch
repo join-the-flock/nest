@@ -16,7 +16,7 @@ index 089b2068a3..3ef1593685 100644
  /// The level of logging severity.
  ///
  /// These levels are used by `Logger` to determine if a message should be output.
-@@ -116,18 +118,32 @@ public protocol OutputWriter {
+@@ -116,18 +118,33 @@ public protocol OutputWriter {
    func writeLine(level: LogLevel, _ message: String)
  }
  
@@ -34,7 +34,8 @@ index 089b2068a3..3ef1593685 100644
 +    case .info:      return .info
 +    case .warning:   return .default
 +    case .error:     return .error
-+    case .important: return .fault   // or .notice, depending on semantics
++    case .important: return .fault
++    case .critical:  return .fault
 +    }
    }
  }
