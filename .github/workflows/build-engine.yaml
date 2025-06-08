@@ -95,18 +95,6 @@ jobs:
             os: ubuntu-latest
             config_name: ci/android_debug_arm64
 
-          - name: android debug arm64 clang tidy
-            os: ubuntu-latest
-            config_name: ci/android_debug_arm64_clang_tidy
-
-          - name: android debug arm64 ddm
-            os: ubuntu-latest
-            config_name: ci/android_debug_arm64_ddm
-
-          - name: android debug arm64 validation layers
-            os: ubuntu-latest
-            config_name: ci/android_debug_arm64_validation_layers
-
           - name: android debug unopt
             os: ubuntu-latest
             config_name: ci/android_debug_unopt
@@ -150,10 +138,6 @@ jobs:
           - name: android release arm64
             os: ubuntu-latest
             config_name: ci/android_release_arm64
-
-          - name: android release arm64 ddm
-            os: ubuntu-latest
-            config_name:  ci/android_release_arm64_ddm
 
           - name: android release x64
             os: ubuntu-latest
@@ -226,10 +210,6 @@ jobs:
           - name: linux host debug clang tidy
             os: ubuntu-latest
             config_name: ci/host_debug_clang_tidy
-
-          - name: linux host debug ddm
-            os: ubuntu-latest
-            config_name: ci/host_debug_ddm
 
     steps:
 

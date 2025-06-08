@@ -4,18 +4,35 @@ Date: Sun, 2 Jun 2025 14:49:01 -0800
 Subject: Fix iOS builds
 
 diff --git a/engine/src/flutter/shell/platform/darwin/common/framework/Source/Logger.swift b/engine/src/flutter/shell/platform/darwin/common/framework/Source/Logger.swift
-index 089b2068a3..2d0f7db8ba 100644
+index 089b2068a3..5f6b713c43 100644
 --- a/engine/src/flutter/shell/platform/darwin/common/framework/Source/Logger.swift
 +++ b/engine/src/flutter/shell/platform/darwin/common/framework/Source/Logger.swift
-@@ -120,7 +120,10 @@ final class SyslogOutputWriter: OutputWriter {
+@@ -4,6 +4,7 @@
+ 
+ import Darwin
+ import Foundation
++import os
+ 
+ /// The level of logging severity.
+ ///
+@@ -117,10 +118,18 @@ public protocol OutputWriter {
+ }
+ 
+ final class SyslogOutputWriter: OutputWriter {
++  private static let log = Logger(
++    subsystem: Bundle.main.bundleIdentifier ?? "org.flutter",
++    category: "flutter"
++  )
++
    func writeLine(level: LogLevel, _ message: String) {
-     // TODO(cbracken): replace this with os_log-based approach.
-     // https://github.com/flutter/flutter/issues/44030
+-    // TODO(cbracken): replace this with os_log-based approach.
+-    // https://github.com/flutter/flutter/issues/44030
 -    message.withCString { vsyslog(LOG_ALERT, "%s", getVaList([$0])) }
-+    // Build a C `va_list` from the Swift string and pass it to vsyslog.
-+    withVaList([message]) { vaList in
-+      vsyslog(LOG_ALERT, "%s", vaList)
++    switch level {
++    case .info:      Self.log.info("\(message, privacy: .public)")
++    case .warning:   Self.log.notice("\(message, privacy: .public)")
++    case .error:     Self.log.error("\(message, privacy: .public)")
++    case .important: Self.log.fault("\(message, privacy: .public)")
 +    }
    }
  }
-
