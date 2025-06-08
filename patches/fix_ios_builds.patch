@@ -35,7 +35,7 @@ index 089b2068a3..3ef1593685 100644
 +    case .warning:   return .default
 +    case .error:     return .error
 +    case .important: return .fault
-+    case .critical:  return .fault
++    case .fatal:     return .fault
 +    }
    }
  }
