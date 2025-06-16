@@ -42,7 +42,7 @@ jobs:
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
     
       - name: web build
-        uses: ./.github/actions/build-engine
+        uses: ./.github/actions/build-and-upload-engine
         with:
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
           gcp_bucket: flutter-builds
@@ -128,7 +128,7 @@ jobs:
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
 
       - name: android build
-        uses: ./.github/actions/build-engine
+        uses: ./.github/actions/build-and-upload-engine
         with:
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
           gcp_bucket: flutter-builds
@@ -197,7 +197,7 @@ jobs:
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
 
       - name: linux build
-        uses: ./.github/actions/build-engine
+        uses: ./.github/actions/build-and-upload-engine
         with:
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
           gcp_bucket: flutter-builds
@@ -345,7 +345,7 @@ jobs:
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
 
       - name: mac build
-        uses: ./.github/actions/build-engine
+        uses: ./.github/actions/build-and-upload-engine
         with:
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
           gcp_bucket: flutter-builds
@@ -410,22 +410,6 @@ jobs:
           - name: ios release extension safe
             config_name: ci/ios_release_extension_safe
             os: macos-latest
-
-          # ------------------------- TESTS BUILDS -------------------------
-
-          # - name: mac release arm64 tests
-          #  os: macos-latest
-          #  config_name: ci/mac_release_arm64_tests
-          #- name: mac host debug arm64 tests
-          #  os: macos-latest
-          #  config_name: ci/host_debug_arm64_tests
-          #- name: mac host profile arm64 tests
-          #  os: macos-latest
-          #  config_name: ci/host_profile_arm64_tests
-          #- name: mac host release arm64 tests
-          #  os: macos-latest
-          #  config_name: ci/host_release_arm64_tests
-
     steps:
 
       - name: Check out the repository
@@ -437,40 +421,13 @@ jobs:
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
 
       - name: mac build
-        uses: ./.github/actions/build-engine
+        uses: ./.github/actions/build-and-upload-engine
         with:
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
           gcp_bucket: flutter-builds
           gclient: slim-mac
           config_name: ${{ matrix.config_name }}
           engine_version: ${{ github.sha }}
-
-
-  #build-engine-windows:
-    # We'll run on whatever OS the matrix entry specifies.
-  #  runs-on: ${{ matrix.os }}
-  #  defaults:
-  #    run:
-  #      shell: bash
-
-  #  strategy:
-  #    max-parallel: 4
-  #    matrix:
-  #      include:
-       # ------------------------- WINDOWS BUILDS -------------------------
-
-          # Engine tool doesn't currently support windows
-          #- name: Windows host release
-          #  config_name: host_release
-          #  os: windows-latest
-  #  steps:
-  #    - name: windows build
-  #      uses: ./.github/actions/build-engine
-  #      with:
-  #        gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
-  #        gclient: slim-windows
-  #        config_name: ${{ matrix.config_name }}
-  #        engine_version: ${{ github.sha }}
 
   build-ios-release:
     needs: build-engine-ios

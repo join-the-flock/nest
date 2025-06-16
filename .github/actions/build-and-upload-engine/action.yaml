@@ -1,27 +1,27 @@
-# .github/actions/build-engine/action.yml
+# .github/actions/build-and-upload-engine/action.yml
 name: ""
 description: "Build the engine with a specific gclient setup and config name"
 inputs:
 
   gclient:
-    description: "name of gclient configuration to use"
+    description: "name of gclient configuration to use, nest includes a few custom gclient files that reduce the size of the engine build so that it fits on a standard github runner"
     required: true
     
   config_name:
-    description: "name of a valid et config"
+    description: "name of a Flutter Engine Tool (et) config (as defined in one of the builder configs in engine/src/flutter/ci/builders)"
     required: true
 
   engine_version:
-    description: "the engine version for the output assets"
+    description: "the engine hash that the output assets will correspond to (should match the engine version hash computed when assembling Flock)"
     required: true
 
   gcp_credentials:
-    description: "the credentials for a GCP storage bucket for the outputs"
+    description: "the credentials for a GCP storage bucket that will store the engine build binaries"
     required: false
     default: ''
 
   gcp_bucket:
-    description: "the bucket to push builds to"
+    description: "the bucket to upload the binaries from the engine build so that they can be downloaded by the flutter tool"
     required: false
     default: ''
 

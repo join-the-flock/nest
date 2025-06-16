@@ -1,4 +1,4 @@
-name: 'Apply Patches'
+name: 'Assemble Flock'
 description: 'Checkout flock into the path "flock" and then apply the patches'
 inputs:
   flutter_ref:
