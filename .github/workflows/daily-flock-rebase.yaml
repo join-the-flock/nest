@@ -38,11 +38,11 @@ jobs:
         config: [master, beta, stable]
 
     steps:
-      - name: check out the repository
+      - name: Check out the Nest Repository
         uses: actions/checkout@v4
 
-      - name: checkout flutter and apply patches
-        uses: ./.github/actions/apply-patches
+      - name: Assemble Flock
+        uses: ./.github/actions/assemble-flock
         with:
           flutter_ref: ${{ matrix.config }}
           token: ${{ secrets.REPO_WORKFLOW_PAT }}
