@@ -30,31 +30,6 @@ jobs:
             config_name: wasm_release
             os: ubuntu-latest
 
-          #- name: linux wasm debug (web)
-          #  config_name: wasm_debug_unopt
-          #  os: ubuntu-latest
-
-          # Running web tests with et doesn't seem to work
-
-          #- name: web_tests/test_bundles/dart2js-canvaskit-canvaskit
-          #  os: ubuntu-latest
-          #  config_name: web_tests/test_bundles/dart2js-canvaskit-canvaskit
-          #- name: web_tests/test_bundles/dart2js-canvaskit-engine
-          #  os: ubuntu-latest
-          #  config_name: web_tests/test_bundles/dart2js-canvaskit-engine
-          #- name: web_tests/test_bundles/dart2js-canvaskit-ui
-          #  os: ubuntu-latest
-          #  config_name: web_tests/test_bundles/dart2js-canvaskit-ui
-          #- name: web_tests/test_bundles/dart2wasm-canvaskit-engine
-          #  os: ubuntu-latest
-          #  config_name: web_tests/test_bundles/dart2wasm-canvaskit-engine
-          #- name: web_tests/test_bundles/dart2wasm-skwasm-ui
-          #  os: ubuntu-latest
-          #  config_name: web_tests/test_bundles/dart2wasm-skwasm-ui
-          #- name: web_tests/test_bundles/fallbacks
-          #  os: ubuntu-latest
-          #  config_name: web_tests/test_bundles/fallbacks
-
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
