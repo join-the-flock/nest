@@ -4,16 +4,12 @@ Date: Sun, 25 May 2025 14:48:07 -0700
 Subject: [PATCH] automatically create nest prs from merged pull requests
 
 ---
- .github/workflows/create-patch-pr.yaml | 75 ++++++++++++++++++++++++++
- 1 file changed, 75 insertions(+)
- create mode 100644 .github/workflows/create-patch-pr.yaml
-
 diff --git a/.github/workflows/create-patch-pr.yaml b/.github/workflows/create-patch-pr.yaml
 new file mode 100644
-index 0000000000..d88700c5f8
+index 0000000000..45f2372e2a
 --- /dev/null
 +++ b/.github/workflows/create-patch-pr.yaml
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,74 @@
 +name: Sync merged PR to patches repo
 +
 +on:
@@ -45,14 +41,14 @@ index 0000000000..d88700c5f8
 +          PR=${{ github.event.pull_request.number }}
 +          SAFE_TITLE=$(echo "${{ github.event.pull_request.title }}" | tr ' ' '-' | tr -cd 'A-Za-z0-9._-')
 +          PATCH_NAME="${PR}-${SAFE_TITLE}.patch"
-+  
++
 +          # Works for private repos because we add the token
 +          curl -L \
 +            -H "Authorization: Bearer ${GH_TOKEN}" \
 +            -H "Accept: application/vnd.github.v3.patch" \
 +            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${PR}" \
 +            -o "${PATCH_NAME}"
-+  
++
 +          echo "patch_name=${PATCH_NAME}" >> "$GITHUB_OUTPUT"
 +
 +      # ── 2. Clone the destination (patches) repo on a new branch ───────────────
@@ -88,7 +84,4 @@ index 0000000000..d88700c5f8
 +            --head "${BRANCH_NAME}" \
 +            --title "Add patch for source PR #${{ github.event.pull_request.number }}" \
 +            --body "Automated patch generated from ${{ github.repository }} PR #${{ github.event.pull_request.number }}."
-+
--- 
-
 
