@@ -27,7 +27,7 @@ inputs:
 
   fetch_depth:
     required: false
-    default: 1
+    default: 0
 
 runs:
   using: "composite"
