@@ -27,11 +27,15 @@ import sys
 
 from lib import git
 from lib.patches import patch_from_dir
+from pathlib import Path
 
 
 def main(argv):
   parser = argparse.ArgumentParser()
-  parser.add_argument("patch_dir",
+  parser.add_argument("-f", "--flutter",
+      help="directory containing a flutter repo to patch",
+      default="./flock")
+  parser.add_argument("-p", "--patches-dir",
       help="directory containing patches to apply")
   parser.add_argument("-3", "--3way",
       action="store_true", dest='threeway',
@@ -39,8 +43,8 @@ def main(argv):
   args = parser.parse_args(argv)
 
   git.import_patches(
-      repo='./flock',
-      patch_data=patch_from_dir(args.patch_dir),
+      repo=Path(args.flutter).expanduser().resolve(strict=False),
+      patch_data=patch_from_dir(Path(args.patch_dir).expanduser().resolve(strict=False)),
       threeway=args.threeway
   )
 

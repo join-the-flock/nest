@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Victor Eronmosele <victoreronmosele@gmail.com>
+Date: Sun, 2 Mar 2025 20:23:33 +0100
+Subject: Support upgrading Flock
+
+Changes made:
+* Add Flock repository URLs in VersionUpstreamValidator's standard remotes
+* Update the Git URL used to determine the Flutter version to Flock
+
+diff --git a/packages/flutter_tools/lib/src/version.dart b/packages/flutter_tools/lib/src/version.dart
+index 4902f732ea..b9c4e4e222 100644
+--- a/packages/flutter_tools/lib/src/version.dart
++++ b/packages/flutter_tools/lib/src/version.dart
+@@ -731,6 +731,9 @@ class VersionUpstreamValidator {
+     'https://github.com/flutter/flutter.git',
+     'git@github.com:flutter/flutter.git',
+     'ssh://git@github.com/flutter/flutter.git',
++    'https://github.com/join-the-flock/flock.git',
++    'git@github.com:join-the-flock/flock.git',
++    'ssh://git@github.com/join-the-flock/flock.git'
+   ];
+ 
+   // Strips ".git" suffix from a given string, preferably an url.
+@@ -987,7 +990,7 @@ class GitTagVersion {
+         globals.printTrace('Skipping request to fetchTags - on well known channel $channel.');
+       } else {
+         final String flutterGit =
+-            platform.environment['FLUTTER_GIT_URL'] ?? 'https://github.com/flutter/flutter.git';
++            platform.environment['FLUTTER_GIT_URL'] ?? 'https://github.com/join-the-flock/flock.git';
+         _runGit('git fetch $flutterGit --tags -f', processUtils, workingDirectory);
+       }
+     }

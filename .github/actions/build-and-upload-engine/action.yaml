@@ -1,0 +1,109 @@
+# .github/actions/build-and-upload-engine/action.yml
+name: "Build and Upload Engine"
+description: "Build the engine with a specific gclient setup and config name"
+inputs:
+
+  gclient:
+    description: "name of gclient configuration to use, nest includes a few custom gclient files that reduce the size of the engine build so that it fits on a standard github runner"
+    required: true
+    
+  config_name:
+    description: "name of a Flutter Engine Tool (et) config (as defined in one of the builder configs in engine/src/flutter/ci/builders)"
+    required: true
+
+  engine_version:
+    description: "the engine hash that the output assets will correspond to (should match the engine version hash computed when assembling Flock)"
+    required: true
+
+  gcp_credentials:
+    description: "the credentials for a GCP storage bucket that will store the engine build binaries"
+    required: false
+    default: ''
+
+  gcp_bucket:
+    description: "the bucket to upload the binaries from the engine build so that they can be downloaded by the flutter tool"
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v2'
+      with:
+        version: '>= 363.0.0'
+
+    - name: Setup gcloud
+      if: ${{ inputs.gcp_bucket != '' && inputs.gcp_credentials != '' }}
+      shell: bash
+      env:
+        GCP_CREDENTIALS: ${{ inputs.gcp_credentials }}
+      run: |
+        echo "$GCP_CREDENTIALS"  | base64 -d  > "$HOME"/gcloud.json
+        gcloud auth activate-service-account --key-file="$HOME"/gcloud.json
+
+    - name: Free disk space
+      shell: bash
+      if: contains(matrix.os, 'ubuntu')
+      run: curl -fsSL https://raw.githubusercontent.com/kou/arrow/e49d8ae15583ceff03237571569099a6ad62be32/ci/scripts/util_free_space.sh | bash
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name:
+      if: ${{ contains(inputs.config_name, 'android') == true }}
+      shell: bash
+      run: |
+        cd flock
+        engine/src/build/linux/sysroot_scripts/install-sysroot.py --arch=x64
+
+    - name: Set up depot_tools / gclient
+      shell: bash
+      run: |
+        git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git $HOME/depot_tools
+        # Append depot_tools to the PATH for subsequent steps
+        echo "$HOME/depot_tools" >> $GITHUB_PATH
+
+    - name: Copy gclient file
+      shell: bash
+      run: |
+        # Use custom gclient to trim size
+        cd flock
+        cp engine/scripts/${{ inputs.gclient }}.gclient .gclient
+
+    - name: Gclient sync
+      shell: bash
+      run: |
+        cd flock
+        gclient sync -D
+
+    - name: Fetch engine dependencies
+      shell: bash
+      run: |
+        cd flock/engine/src
+        ./flutter/bin/et fetch
+
+    - name: Build Engine
+      shell: bash
+      run: |
+        echo "Running et config: ${{ inputs.config_name }}"
+        cd flock/engine/src
+        ./flutter/bin/et build --config ${{ inputs.config_name }}
+
+    - name: Copy Zip Archives
+      shell: bash
+      if: ${{ hashFiles(format('flock/engine/src/out/{0}/zip_archives/**', inputs.config_name))!= ''  && contains(inputs.config_name, 'test') == false && inputs.gcp_bucket != ''}}
+      run: |
+        cd flock/engine/src
+        echo "copying output to /build_outputs/flutter/engine/<engine-revision>/<platform>/<artifact-name>"
+        gcloud storage cp --recursive out/${{ inputs.config_name }}/zip_archives/* gs://${{inputs.gcp_bucket}}/flutter_infra_release/flutter/engine/${{ inputs.engine_version }}/
+
+    - name: Copy Engine Outputs
+      shell: bash
+      if: ${{ hashFiles(format('flock/engine/src/out/{0}/zip_archives/**', inputs.config_name)) == '' && contains(inputs.config_name, 'test') == false && inputs.gcp_bucket != '' }}
+      run: |
+        cd flock/engine/src
+        echo "copying output to /build_outputs/flutter/engine/<engine-revision>/<platform>/<artifact-name>"
+        tar c out/${{ inputs.config_name }} | gzip > out/${{ inputs.config_name }}.tar.gz
+        gcloud storage cp --recursive out/${{ inputs.config_name }}.tar.gz gs://${{inputs.gcp_bucket}}/flutter_infra_release/flutter/engine/${{ inputs.engine_version }}/${{ inputs.config_name }}.tar.gz

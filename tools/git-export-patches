@@ -26,10 +26,14 @@ import argparse
 import sys
 
 from lib import git
+from pathlib import Path
 
 def main(argv):
   parser = argparse.ArgumentParser()
-  parser.add_argument("-o", "--output",
+  parser.add_argument("-f", "--flutter",
+      help="directory containing a flutter repo to patch",
+      default="./flock")
+  parser.add_argument("-p", "--patches-dir",
       help="directory into which exported patches will be written",
       required=True)
   parser.add_argument("--grep",
@@ -40,7 +44,7 @@ def main(argv):
            "most recent tag or remote branch.")
   args = parser.parse_args(argv)
 
-  git.export_patches('./flock', args.output, patch_range=args.patch_range, grep=args.grep)
+  git.export_patches(Path(args.flutter).expanduser().resolve(strict=False), Path(args.patch_dir).expanduser().resolve(strict=False), patch_range=args.patch_range, grep=args.grep)
 
 
 if __name__ == '__main__':

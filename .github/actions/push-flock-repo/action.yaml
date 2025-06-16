@@ -1,0 +1,21 @@
+name: 'Update Remote Flock Branch'
+description: 'Pushes the Flock repo (will force push and replace whatever is in the destination branch)'
+inputs:
+  destination_repo:
+    required: true
+    description: "the repo to push the flock build to"
+
+  destination_branch:
+    required: true
+    description: "the branch to push the flock build to"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Push to destination
+      shell: bash
+      run: |
+        cd flock
+        git remote add destination https://github.com/${{ inputs.destination_repo }}
+        git checkout -b flock-temp
+        git push -f destination flock-temp:${{ inputs.destination_branch}}

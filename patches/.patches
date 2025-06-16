@@ -1,3 +1,6 @@
 added_gclient_files_to_gitignore_to_support_flock_and_other_flutter.patch
+add_slim_gclients.patch
+support_upgrading_flock.patch
+fix_ios_builds.patch
 alter_update_engine_version_sh_to_use_the_latest_flutter.patch
 create-patch-pr.patch

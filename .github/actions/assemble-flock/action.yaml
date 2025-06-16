@@ -1,0 +1,50 @@
+name: 'Assemble Flock'
+description: 'Checkout flock into the path "flock" and then apply the patches'
+inputs:
+  flutter_ref:
+    required: true
+    description: "the ref of the flutter repo to use as a base (typically the most recent commit on either master, stable, or beta)"
+
+  flutter_repo:
+    required: false
+    description: "the flutter repo to use as a base"
+    default: flutter/flutter
+
+  token: 
+    required: false
+    description: "An access token, such as a personal access token (PAT) or organization token, which has read access to the base repo (usually flutter/flutter), and also has write access to the fork repo (e.g., join-the-flock/flock). Even though this step doesn't push any changes to the fork repo, GitHub won't allow any future push to the fork repo, unless the base repo is originally checked out with that token. Therefore, the token must be used up front at this stage during initial checkout and assembly."
+    default: ${{ github.token }}
+
+  fetch_depth:
+    description: "The git fetch depth used when checking out the base repo (typically Flutter). This action walks the engine history to select an engine hash. When the fetch depth is zero, that history walking should always work. If the fetch depth is 1+, it's possible that an unexpected engine hash is selected. Use at own discretion."
+    required: false
+    default: 0
+
+runs:
+  using: "composite"
+  steps:
+    - name: checkout base flutter ref
+      uses: actions/checkout@v4
+      with:
+        path: 'flock'
+        repository: ${{inputs.flutter_repo}}
+        ref: '${{inputs.flutter_ref}}'
+        token: ${{ inputs.token }}
+    
+    # Compute an engine version hash so the flutter tool will be able to find a precompiled engine
+    - name: save engine hash
+      shell: bash
+      run: |
+        cd ./flock
+        ./bin/internal/update_engine_version.sh
+        cp ./bin/cache/engine.stamp ./bin/internal/engine.version
+      
+        git add -f ./bin/internal/engine.version
+        git config --global user.email "join-the-flock@users.noreply.github.com"
+        git config --global user.name "join-the-flock"
+        git commit -m "save engine version" --allow-empty
+    
+    - name: Apply Flock patches on top of Flutter
+      shell: bash
+      run: |
+        tools/git-import-patches -p patches
