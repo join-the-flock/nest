@@ -33,7 +33,7 @@ def main(argv):
   parser.add_argument("-f", "--flutter",
       help="directory containing a flutter repo to patch",
       default="./flock")
-  parser.add_argument("-p", "--patch-dir",
+  parser.add_argument("-p", "--patches-dir",
       help="directory into which exported patches will be written",
       required=True)
   parser.add_argument("--grep",

@@ -35,7 +35,7 @@ def main(argv):
   parser.add_argument("-f", "--flutter",
       help="directory containing a flutter repo to patch",
       default="./flock")
-  parser.add_argument("-p", "--patch-dir",
+  parser.add_argument("-p", "--patches-dir",
       help="directory containing patches to apply")
   parser.add_argument("-3", "--3way",
       action="store_true", dest='threeway',
