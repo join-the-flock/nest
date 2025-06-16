@@ -23,7 +23,7 @@ index 0000000000..d88700c5f8
 +
 +jobs:
 +  export-and-pr:
-+    if: github.event.pull_request.merged == true
++    if: contains(join(github.event.pull_request.labels.*.name, ','), 'merge')
 +    runs-on: ubuntu-latest
 +
 +    permissions:
