@@ -44,7 +44,8 @@ def main(argv):
 
   git.import_patches(
       repo=Path(args.flutter).expanduser().resolve(strict=False),
-      patch_data=patch_from_dir(Path(args.patch_dir).expanduser().resolve(strict=False)),
+      patch_data=patch_from_dir(Path(args.patches_dir).expanduser().resolve(strict=False)),
+
       threeway=args.threeway
   )
 
