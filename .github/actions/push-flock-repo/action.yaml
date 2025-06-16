@@ -1,5 +1,5 @@
-name: 'Push Flock Repo'
-description: 'Applies nest patches and then pushes to a flock repo'
+name: 'Update Remote Flock Branch'
+description: 'Pushes the Flock repo (will force push and replace whatever is in the destination branch)'
 inputs:
   destination_repo:
     required: true

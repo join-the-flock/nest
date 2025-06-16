@@ -1,5 +1,5 @@
 # .github/actions/build-and-upload-engine/action.yml
-name: ""
+name: "Build and Upload Engine"
 description: "Build the engine with a specific gclient setup and config name"
 inputs:
 

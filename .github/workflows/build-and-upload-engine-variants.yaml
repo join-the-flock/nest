@@ -592,7 +592,7 @@ jobs:
           git config --global user.name "Flock"
           git commit -m "save engine version" --allow-empty
 
-      - name: push build to branch
+      - name: update our remote flock branch to use this engine hash
         uses: ./.github/actions/push-flock-repo
         with:
           destination_repo: ${{ env.FLOCK_REPO }}
