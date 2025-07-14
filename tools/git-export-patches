@@ -44,7 +44,7 @@ def main(argv):
            "most recent tag or remote branch.")
   args = parser.parse_args(argv)
 
-  git.export_patches(Path(args.flutter).expanduser().resolve(strict=False), Path(args.patch_dir).expanduser().resolve(strict=False), patch_range=args.patch_range, grep=args.grep)
+  git.export_patches(Path(args.flutter).expanduser().resolve(strict=False), Path(args.patches_dir).expanduser().resolve(strict=False), patch_range=args.patch_range, grep=args.grep)
 
 
 if __name__ == '__main__':

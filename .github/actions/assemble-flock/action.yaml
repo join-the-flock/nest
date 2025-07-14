@@ -33,22 +33,22 @@ inputs:
 runs:
   using: "composite"
   steps:
-      - name: checkout base flutter ref
-        uses: actions/checkout@v4
-        with:
-          path: 'flock'
-          fetch-depth: ${{inputs.fetch_depth}}
-          repository: ${{inputs.flutter_repo}}
-          ref: '${{inputs.flutter_ref}}'
-          token: ${{ inputs.token }}
+    - name: checkout base flutter ref
+      uses: actions/checkout@v4
+      with:
+        path: 'flock'
+        fetch-depth: ${{inputs.fetch_depth}}
+        repository: ${{inputs.flutter_repo}}
+        ref: '${{inputs.flutter_ref}}'
+        token: ${{ inputs.token }}
     
-      - name: checkout base flutter ref
-        uses: actions/checkout@v4
-        with:
-          path: 'patches'
-          repository: ${{inputs.patches_repo}}
-          ref: '${{inputs.patches_ref}}'
-          token: ${{ inputs.token }}
+    - name: checkout base flutter ref
+      uses: actions/checkout@v4
+      with:
+        path: 'patches'
+        repository: ${{inputs.patches_repo}}
+        ref: '${{inputs.patches_ref}}'
+        token: ${{ inputs.token }}
 
     # Compute an engine version hash so the flutter tool will be able to find a precompiled engine
     - name: save engine hash
