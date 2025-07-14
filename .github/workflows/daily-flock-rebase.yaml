@@ -24,10 +24,10 @@ env:
   GITHUB_PAT: ${{ secrets.REPO_WORKFLOW_PAT }}
 
   # A repo to use for patches
-  PATCHES_REPO: ${{ vars.PATCHES_REPO }}
+  PATCHES_REPO: ${{ vars.FLOCK_PATCHES_REPO }}
 
   # The ref on the patches repo to apply
-  PATCHES_REF: ${{ vars.PATCHES_REP }}
+  PATCHES_REF: ${{ vars.FLOCK_PATCHES_REF }}
 
 name: daily-flock-rebase
 permissions:
