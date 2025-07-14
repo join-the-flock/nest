@@ -20,6 +20,16 @@ inputs:
     required: false
     default: 0
 
+  patches_ref:
+    required: true
+    description: "the ref of the branch or ref to use for patching flutter"
+    default: main
+
+  patches_repo:
+    required: false
+    description: "the repo to use for patches"
+    default: join-the-flock/flock-patches
+
 runs:
   using: "composite"
   steps:
@@ -32,6 +42,14 @@ runs:
         ref: '${{inputs.flutter_ref}}'
         token: ${{ inputs.token }}
     
+    - name: checkout base flutter ref
+      uses: actions/checkout@v4
+      with:
+        path: 'patches'
+        repository: ${{inputs.patches_repo}}
+        ref: '${{inputs.patches_ref}}'
+        token: ${{ inputs.token }}
+
     # Compute an engine version hash so the flutter tool will be able to find a precompiled engine
     - name: save engine hash
       shell: bash

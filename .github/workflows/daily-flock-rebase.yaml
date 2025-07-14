@@ -46,6 +46,8 @@ jobs:
         with:
           flutter_ref: ${{ matrix.config }}
           token: ${{ secrets.REPO_WORKFLOW_PAT }}
+          patches_repo: ${{ secrets.PATCHES_REPO }}
+          patches_ref: ${{ secrets.PATCHES_REF }}
 
       - name: Update Remote Flock Branch, will force push our assembled version (master, beta, stable)
         uses: ./.github/actions/push-flock-repo
