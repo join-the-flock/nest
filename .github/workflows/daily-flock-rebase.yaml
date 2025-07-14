@@ -23,6 +23,12 @@ env:
   # history in the `FLOCK_REPO`.
   GITHUB_PAT: ${{ secrets.REPO_WORKFLOW_PAT }}
 
+  # A repo to use for patches
+  PATCHES_REPO: ${{ vars.FLOCK_PATCHES_REPO }}
+
+  # The ref on the patches repo to apply
+  PATCHES_REF: ${{ vars.FLOCK_PATCHES_REF }}
+
 name: daily-flock-rebase
 permissions:
   contents: write
@@ -46,8 +52,8 @@ jobs:
         with:
           flutter_ref: ${{ matrix.config }}
           token: ${{ secrets.REPO_WORKFLOW_PAT }}
-          patches_repo: ${{ secrets.PATCHES_REPO }}
-          patches_ref: ${{ secrets.PATCHES_REF }}
+          patches_repo: ${{ env.PATCHES_REPO }}
+          patches_ref: ${{ env.PATCHES_REF }}
 
       - name: Update Remote Flock Branch, will force push our assembled version (master, beta, stable)
         uses: ./.github/actions/push-flock-repo
