@@ -66,4 +66,4 @@ runs:
     - name: Apply Flock patches on top of Flutter
       shell: bash
       run: |
-        tools/git-import-patches -p patches
+        tools/git-import-patches -p patches -3
