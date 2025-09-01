@@ -68,37 +68,41 @@ runs:
       run: |
         set -euo pipefail
 
-        # Run patch import; capture logs for context on failure
         if ! tools/git-import-patches -p patches -3 2> patch_fail.log; then
           echo "::error::git-import-patches failed. Showing conflicts and context…"
-
+    
           echo "::group::Last 200 lines of git-import-patches stderr"
           tail -n 200 patch_fail.log || true
           echo "::endgroup::"
-
+    
           echo "::group::Git status (flock)"
           (cd flock && git status --porcelain=v1 && echo && git diff --name-only --diff-filter=U || true)
           echo "::endgroup::"
-
-          echo "::group::Conflict markers (flock)"
+    
+          echo "::group::Conflicts with full context (flock)"
           (
             cd flock || exit 0
-            # Prefer Git's view of unmerged paths
             files="$(git diff --name-only --diff-filter=U || true)"
             if [ -n "$files" ]; then
               for f in $files; do
                 echo "--- $f ---"
-                # Print only the lines with conflict markers, with line numbers
+                # Print the full conflict blocks with content
                 awk '
-                  /^[<]{7}|^[=]{7}|^[>]{7}/ { printf("%s:%d:%s\n", FILENAME, NR, $0) }
+                  BEGIN { inconflict=0 }
+                  /^<<<<<<< / { inconflict=1; print "----- conflict start (" FILENAME ":" NR ") -----"; print; next }
+                  /^>>>>>>> / { print; print "----- conflict end (" FILENAME ":" NR ") -----"; inconflict=0; next }
+                  inconflict { print }
                 ' "$f" || true
               done
             else
-              # Fallback: grep recursively for markers if Git didn't flag unmerged paths
-              grep -R -n -E "^(<<<<<<<|=======|>>>>>>>)" . || true
+              # Fallback: grep recursively and show context if git didn't detect
+              grep -R -n -C3 -E "^(<<<<<<<|=======|>>>>>>>)" . || true
             fi
           )
           echo "::endgroup::"
+    
+          exit 1
+        fi
 
           exit 1
         fi
