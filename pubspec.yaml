@@ -1,0 +1,12 @@
+name: nest
+description: Tools for maintaining and validating Flutter forks.
+publish_to: none
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  args: ^2.7.0
+
+dev_dependencies:
+  test: ^1.25.0

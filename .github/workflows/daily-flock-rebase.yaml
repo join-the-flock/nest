@@ -34,15 +34,35 @@ jobs:
   # This job runs for "master", "beta", and "stable" Flock branches.
   rebase-flock-on-flutter:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    # A manual run and a scheduled run must not publish over one another.
+    concurrency:
+      group: daily-flock-${{ matrix.config }}
+      cancel-in-progress: false
 
     strategy:
       fail-fast: false
-      matrix: 
-        config: [master, beta, stable]
+      matrix:
+        include:
+          - config: master
+            demo_ref: main
+          - config: beta
+            demo_ref: beta
+          - config: stable
+            demo_ref: stable
 
     steps:
       - name: Check out the Nest Repository
         uses: actions/checkout@v4
+
+      - name: Set up Dart for Nest tooling
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Resolve Nest tooling dependencies
+        run: dart pub get --enforce-lockfile
 
       - name: Assemble Flock
         uses: ./.github/actions/assemble-flock
@@ -52,6 +72,35 @@ jobs:
           patches_repo: ${{ env.PATCHES_REPO }}
           patches_ref: ${{ matrix.config }}
 
+      - name: Check out the Flock demo for this channel
+        uses: actions/checkout@v4
+        with:
+          repository: join-the-flock/flock-demo
+          ref: ${{ matrix.demo_ref }}
+          path: flock-demo
+          persist-credentials: false
+
+      - name: Validate assembled Flock before publishing
+        timeout-minutes: 45
+        env:
+          CI: 'true'
+          FLUTTER_SUPPRESS_ANALYTICS: 'true'
+          DART_SUPPRESS_ANALYTICS: 'true'
+        run: >-
+          dart run tools/flock_publication_preflight_checks.dart
+          --flutter-path flock
+          --demo-path flock-demo
+          --channel "${{ matrix.config }}"
+          --report-dir "${{ runner.temp }}/flock-validation"
+
+      - name: Upload validation evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: flock-validation-${{ matrix.config }}
+          path: ${{ runner.temp }}/flock-validation
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Update Remote Flock Branch, will force push our assembled version (master, beta, stable)
         uses: ./.github/actions/push-flock-repo

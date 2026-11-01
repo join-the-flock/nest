@@ -1,6 +1,9 @@
 # Mac files.
 .DS_Store
 
+# Dart package dependencies.
+.dart_tool/
+
 # python cache
 tools/lib/__pycache__/
 

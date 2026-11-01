@@ -1,0 +1,45 @@
+name: Test Nest publication preflight
+
+on:
+  pull_request:
+    paths:
+      - 'tools/flock_publication_preflight_checks.dart'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - '.github/workflows/test-publication-preflight.yaml'
+      - '.github/workflows/daily-flock-rebase.yaml'
+  push:
+    paths:
+      - 'tools/flock_publication_preflight_checks.dart'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - '.github/workflows/test-publication-preflight.yaml'
+      - '.github/workflows/daily-flock-rebase.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  test-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out Nest
+        uses: actions/checkout@v4
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Resolve Nest dependencies
+        run: dart pub get --enforce-lockfile
+
+      - name: Analyze and test Nest preflight checks
+        run: |
+          dart analyze tools/flock_publication_preflight_checks.dart test/flock_publication_preflight_checks_test.dart
+          dart test
