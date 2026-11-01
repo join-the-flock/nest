@@ -45,8 +45,8 @@ pinned engine. It then resolves dependencies for `join-the-flock/flock-demo`,
 runs its analysis and widget tests, and builds it for web in release mode. It also
 checks that validation did not change the assembled revision or tracked files.
 
-The workflow checks out the demo's `main` branch for Flock `master`, and its
-`beta` and `stable` branches for the corresponding channels. Every Flutter
+The workflow runs from Nest's `main` branch and checks out the demo's `master`,
+`beta`, or `stable` branch to match the Flock channel being assembled. Every Flutter
 command uses the assembled SDK directly, bypassing the demo's FVM configuration
 so that validation never installs the already-published Flock distribution.
 

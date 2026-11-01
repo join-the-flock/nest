@@ -44,13 +44,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - config: master
-            demo_ref: main
-          - config: beta
-            demo_ref: beta
-          - config: stable
-            demo_ref: stable
+        config: [master, beta, stable]
 
     steps:
       - name: Check out the Nest Repository
@@ -76,7 +70,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: join-the-flock/flock-demo
-          ref: ${{ matrix.demo_ref }}
+          ref: ${{ matrix.config }}
           path: flock-demo
           persist-credentials: false
 
