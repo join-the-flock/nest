@@ -30,6 +30,27 @@ void main() {
       }
     });
 
+    group('Dart setup >', () {
+      for (final caller in callers) {
+        test('${caller.job} installs Dart with annotations before assembly',
+            () {
+          final job = (_workflow(caller.workflow)['jobs']
+              as YamlMap)[caller.job] as YamlMap;
+          final steps = (job['steps'] as YamlList).cast<YamlMap>().toList();
+          final assembly = steps.indexWhere(
+              (step) => step['uses'] == './.github/actions/assemble-flock');
+          final setup = steps
+              .take(assembly)
+              .where((step) => step['uses'] == 'dart-lang/setup-dart@v1')
+              .toList();
+          expect(setup, hasLength(1), reason: caller.workflow);
+          final inputs = setup.single['with'] as YamlMap;
+          expect(inputs['sdk'], 'stable');
+          expect(inputs['problem-matcher'], isTrue);
+        });
+      }
+    });
+
     group('Daily releases >', () {
       final workflow = _workflow('daily-flock-rebase.yaml');
       final job =
@@ -92,28 +113,30 @@ void main() {
       expect(packageSteps.last['run'], contains('dart test'));
     });
 
-    test('assembly installs independent Dart and resolves Nest before patching',
+    test(
+        'assembly resolves dependencies before patching without nesting Dart setup',
         () {
       final action = loadYaml(File('.github/actions/assemble-flock/action.yaml')
           .readAsStringSync()) as YamlMap;
       final steps = ((action['runs'] as YamlMap)['steps'] as YamlList)
           .cast<YamlMap>()
           .toList();
-      final setup =
-          steps.indexWhere((step) => step['uses'] == 'dart-lang/setup-dart@v1');
+      expect(steps.where((step) => step['uses'] == 'dart-lang/setup-dart@v1'),
+          isEmpty,
+          reason:
+              'Dart setup belongs in the calling workflow so its matcher resolves correctly');
       final dependencies = steps.indexWhere(
           (step) => step['run'] == 'dart pub get --enforce-lockfile');
       final apply = steps.indexWhere((step) => '${step['run']}'
           .contains('dart run nest_patches/bin/git_import_patches.dart -p'));
-      expect(setup, greaterThanOrEqualTo(0));
-      expect(dependencies, greaterThan(setup));
+      expect(dependencies, greaterThanOrEqualTo(0));
       expect(apply, greaterThan(dependencies));
       expect(steps[dependencies]['working-directory'],
           r'${{ github.action_path }}/../../..');
       final patchDependencies = steps.indexWhere((step) =>
           step['working-directory'] ==
           r'${{ github.action_path }}/../../../nest_patches');
-      expect(patchDependencies, greaterThan(setup));
+      expect(patchDependencies, greaterThanOrEqualTo(0));
       expect(apply, greaterThan(patchDependencies));
       expect(
           steps[patchDependencies]['run'], 'dart pub get --enforce-lockfile');

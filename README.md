@@ -78,8 +78,10 @@ must select patch repository ref `main` and the matching `.patches-<channel>`
 manifest. Daily release and engine-build workflows use this selection: patch
 repository `main`, with the manifest matching the Flutter channel. Flutter, Flock
 distribution, and flock-demo branches remain channel-specific.
-The assembly action installs Dart and resolves Nest dependencies before applying
-patches, including when called from engine-build workflows.
+Daily release and engine-build workflows install Dart before invoking the
+assembly action, keeping analyzer annotations enabled. The assembly action
+resolves Nest and patch-package dependencies before applying patches. Custom
+callers must also set up Dart at workflow level before invoking assembly.
 
 For complete file ownership, add a `Patch-Replace-File: <path>` trailer to the
 commit. Export emits the file as an unconditional replacement; import remembers
