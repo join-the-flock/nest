@@ -28,9 +28,7 @@ Everything here should be project agnostic: it shouldn't rely on project's
 structure, or make assumptions about the passed arguments or calls' outcomes.
 """
 
-import io
 import os
-import posixpath
 import re
 import subprocess
 import sys
@@ -38,7 +36,8 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(SCRIPT_DIR)
 
-from patches import PATCH_FILENAME_PREFIX, is_patch_location_line
+from patches import (PATCH_FILENAME_PREFIX, is_patch_location_line,
+                     resolve_manifest, validate_patch_names, write_patch_collection)
 
 UPSTREAM_HEAD='refs/patches/upstream-head'
 
@@ -245,12 +244,13 @@ def remove_patch_location(patch):
 
 def export_patches(repo, out_dir,
                    patch_range=None, ref=UPSTREAM_HEAD,
-                   dry_run=False, grep=None):
+                   dry_run=False, grep=None, manifest=None, update_shared=False):
   if not os.path.exists(repo):
     sys.stderr.write(
       f"Skipping patches in {repo} because it does not exist.\n"
     )
     return
+  manifest = resolve_manifest(out_dir, manifest)
   if patch_range is None:
     patch_range, n_patches = guess_base_commit(repo, ref)
     msg = f"Exporting {n_patches} patches in {repo} since {patch_range[0:7]}\n"
@@ -259,53 +259,24 @@ def export_patches(repo, out_dir,
   patches = split_patches(patch_data)
   if grep:
     olen = len(patches)
-    patches = filter_patches(patches, grep)
+    # Keep every commit in a selected multi-commit patch file.
+    selected_names = {get_file_name(patch) for patch in filter_patches(patches, grep)}
+    patches = [patch for patch in patches if get_file_name(patch) in selected_names]
     sys.stderr.write(f"Exporting {len(patches)} of {olen} patches\n")
 
-  try:
-    os.mkdir(out_dir)
-  except OSError:
-    pass
+  if grep and not patches:
+    return
 
-  if dry_run:
-    # If we're doing a dry run, iterate through each patch and see if the newly
-    # exported patch differs from what exists. Report number of mismatched
-    # patches and fail if there's more than one.
-    bad_patches = []
-    for patch in patches:
-      filename = get_file_name(patch)
-      filepath = posixpath.join(out_dir, filename)
-      with io.open(filepath, 'rb') as inp:
-        existing_patch = str(inp.read(), 'utf-8')
-      formatted_patch = join_patch(patch)
-      if formatted_patch != existing_patch:
-        bad_patches.append(filename)
-    if len(bad_patches) > 0:
-      sys.stderr.write(
-        "Patches in {} not up to date: {} patches need update\n-- {}\n".format(
-          out_dir, len(bad_patches), "\n-- ".join(bad_patches)
-        )
-      )
-      sys.exit(1)
-  else:
-    # Remove old patches so that deleted commits are correctly reflected in the
-    # patch files (as a removed file)
-    for p in os.listdir(out_dir):
-      if p.endswith('.patch'):
-        os.remove(posixpath.join(out_dir, p))
-    with io.open(
-      posixpath.join(out_dir, '.patches'),
-      'w',
-      newline='\n',
-      encoding='utf-8',
-    ) as pl:
-      for patch in patches:
-        filename = get_file_name(patch)
-        file_path = posixpath.join(out_dir, filename)
-        formatted_patch = join_patch(patch)
-        # Write in binary mode to retain mixed line endings on write.
-        with io.open(
-          file_path, 'wb'
-        ) as f:
-          f.write(formatted_patch.encode('utf-8'))
-        pl.write(filename + '\n')
+  # A mail file can contain several consecutive commits. Preserve its imported
+  # filename (including adaptation dates) and its position in the collection.
+  exported = {}
+  previous_name = None
+  for patch in patches:
+    filename = get_file_name(patch)
+    validate_patch_names([filename], manifest)
+    if filename in exported and filename != previous_name:
+      raise ValueError(f'Nonconsecutive commits use the same patch filename: {filename}')
+    exported[filename] = exported.get(filename, b'') + join_patch(patch).encode('utf-8')
+    previous_name = filename
+  write_patch_collection(out_dir, manifest, exported, partial=bool(grep),
+                         update_shared=update_shared, dry_run=dry_run)

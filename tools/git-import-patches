@@ -26,7 +26,7 @@ import argparse
 import sys
 
 from lib import git
-from lib.patches import patch_from_dir
+from lib.patches import patch_from_dir, resolve_manifest
 from pathlib import Path
 
 
@@ -36,18 +36,28 @@ def main(argv):
       help="directory containing a flutter repo to patch",
       default="./flock")
   parser.add_argument("-p", "--patches-dir",
-      help="directory containing patches to apply")
+      help="directory containing patches to apply",
+      required=True)
   parser.add_argument("-3", "--3way",
       action="store_true", dest='threeway',
       help="use 3-way merge to resolve conflicts")
+  selection = parser.add_mutually_exclusive_group()
+  selection.add_argument("--channel", choices=['master', 'beta', 'stable'],
+      help="select .patches-<channel> from the shared patch collection")
+  selection.add_argument("--manifest",
+      help="select .patches or an explicit .patches-<channel> manifest")
   args = parser.parse_args(argv)
 
-  git.import_patches(
-      repo=Path(args.flutter).expanduser().resolve(strict=False),
-      patch_data=patch_from_dir(Path(args.patches_dir).expanduser().resolve(strict=False)),
-
-      threeway=args.threeway
-  )
+  try:
+    patch_dir = Path(args.patches_dir).expanduser().resolve(strict=False)
+    manifest = resolve_manifest(
+        patch_dir, f'.patches-{args.channel}' if args.channel else args.manifest)
+    git.import_patches(
+        repo=Path(args.flutter).expanduser().resolve(strict=False),
+        patch_data=patch_from_dir(patch_dir, manifest),
+        threeway=args.threeway)
+  except (ValueError, OSError, RuntimeError) as error:
+    parser.exit(1, f'{error}\n')
 
 
 if __name__ == '__main__':

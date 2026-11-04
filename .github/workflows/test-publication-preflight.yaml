@@ -1,9 +1,10 @@
-name: Test Nest publication preflight
+name: Test Nest tools
 
 on:
   pull_request:
     paths:
-      - 'tools/flock_publication_preflight_checks.dart'
+      - 'tools/**'
+      - '.github/actions/assemble-flock/action.yaml'
       - 'test/**'
       - 'pubspec.yaml'
       - 'pubspec.lock'
@@ -12,7 +13,8 @@ on:
       - '.github/workflows/daily-flock-rebase.yaml'
   push:
     paths:
-      - 'tools/flock_publication_preflight_checks.dart'
+      - 'tools/**'
+      - '.github/actions/assemble-flock/action.yaml'
       - 'test/**'
       - 'pubspec.yaml'
       - 'pubspec.lock'
@@ -39,7 +41,7 @@ jobs:
       - name: Resolve Nest dependencies
         run: dart pub get --enforce-lockfile
 
-      - name: Analyze and test Nest preflight checks
+      - name: Analyze and test Nest tools
         run: |
-          dart analyze tools/flock_publication_preflight_checks.dart test/flock_publication_preflight_checks_test.dart
+          dart analyze tools/flock_publication_preflight_checks.dart test
           dart test
