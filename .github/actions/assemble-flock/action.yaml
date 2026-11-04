@@ -30,6 +30,11 @@ inputs:
     description: "the repo to use for patches"
     default: join-the-flock/flock-patches
 
+  patches_manifest:
+    required: false
+    description: "Manifest filename in the patch repository selecting the ordered patch collection"
+    default: .patches
+
 runs:
   using: "composite"
   steps:
@@ -65,10 +70,12 @@ runs:
     
     - name: Apply Flock patches on top of Flutter
       shell: bash
+      env:
+        PATCHES_MANIFEST: ${{ inputs.patches_manifest }}
       run: |
         set -euo pipefail
 
-        if ! tools/git-import-patches -p patches -3 2> patch_fail.log; then
+        if ! tools/git-import-patches -p patches --manifest "$PATCHES_MANIFEST" -3 2> patch_fail.log; then
           echo "::error::git-import-patches failed. Showing conflicts and context…"
     
           echo "::group::Last 200 lines of git-import-patches stderr"

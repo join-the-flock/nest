@@ -25,6 +25,53 @@ Forking Flutter requires constant maintenance:
 Nest aims to create and collect various scripts and apps that make it easier to maintain
 and distribute Flutter forks.
 
+## Importing and exporting channel patches
+
+A shared patch repository can keep `.patches-master`, `.patches-beta`, and
+`.patches-stable` on one branch. Each manifest lists the filenames to apply in
+order. Patch files live together at the repository root; channels can share files
+or select different dated adaptations of the same change.
+
+Run these commands from the Nest repository, with the desired patch repository
+checked out in `patches/` and the matching Flutter checkout in `flock/`:
+
+```sh
+tools/git-import-patches -p patches --channel stable -3
+tools/git-export-patches -p patches --channel stable --dry-run
+tools/git-export-patches -p patches --channel stable
+```
+
+Both commands accept `--flutter /path/to/sdk` to select a different Flutter
+checkout, and `--manifest .patches-stable` is equivalent to `--channel stable`.
+Channel collections require an explicit selection. Legacy repositories with only
+`.patches` continue working without either option. Import records the included
+upstream revision at `refs/patches/upstream-head` for subsequent exports.
+
+Export replaces the selected manifest with the exported history in order. It
+preserves filenames recorded in imported commits, including adaptation dates.
+For a new compatibility adaptation, set its commit's `Patch-Filename:` line to
+`<name>_YYYY-MM-DD.patch`, using the UTC date of the upstream change requiring
+that adaptation. An unmarked new commit gets a baseline filename from its subject.
+Dates identify adaptations; the manifests select which channels use them.
+
+Export preserves other manifests and deletes a removed file only when it was
+previously in the selected manifest and no other manifest references it. Unlisted
+files are preserved. Changing a shared file's contents requires `--update-shared`;
+that deliberately updates the file for every channel selecting it. Use a dated
+adaptation when the implementations need to differ.
+
+`--grep <text>` exports matching patch files while retaining the other selected
+patches and their order. All commits belonging to a matching multi-commit file
+are retained. `--dry-run` writes nothing and exits nonzero if changes would be
+needed. Review the resulting diff and validate every affected channel before
+committing.
+
+The assembly action accepts the same selection through `patches_manifest`,
+which defaults to `.patches` for existing callers. For the new layout, callers
+must select patch repository ref `main` and the matching `.patches-<channel>`
+manifest. The daily and engine-build workflow callers still need that cutover;
+updating the tools alone does not switch publication away from channel branches.
+
 ## Validation before daily publication
 
 `tools/flock_publication_preflight_checks.dart` belongs to Nest. The daily rebase workflow runs it from
@@ -73,13 +120,15 @@ workflow, not the full Flutter test suite or validation of custom engine builds.
 Native platforms, including Flock's iOS logging patch, need separate engine
 build and platform tests before those binaries are distributed.
 
-Nest's own tests live in `test/flock_publication_preflight_checks_test.dart`. Run `dart pub get` and
-`dart test` from the Nest repository. These tests simulate Flutter command
-responses in temporary checkouts; they do not download Flutter or contact the
-Flock or flock-demo repositories. Nest's `test-publication-preflight.yaml`
+Nest's own tests live in `test/`. Run `dart pub get` and `dart test` from the Nest
+repository. The patch-tool tests exercise real imports and exports in temporary
+Git repositories, including channel isolation and multi-commit round trips.
+The publication preflight tests simulate Flutter command responses. Neither suite
+downloads Flutter or contacts the Flock or flock-demo repositories.
+Nest's `test-publication-preflight.yaml`
 workflow runs analysis and these tests on pull requests and pushes that change
-the preflight script, tests, package dependencies, analyzer configuration, or
-the related workflows. It runs from the Nest checkout on GitHub Actions using
+the tools, assembly action, tests, package dependencies, analyzer configuration,
+or the related workflows. It runs from the Nest checkout on GitHub Actions using
 stable Dart, without assembling Flock.
 
 The daily publication workflow does not run Nest's unit tests. It resolves

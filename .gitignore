@@ -10,3 +10,6 @@ tools/lib/__pycache__/
 # Ignore flock so we don't accidently commit it
 flock
 !flock/.gclient
+
+# Local patch repository checkout.
+/patches/

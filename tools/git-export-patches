@@ -26,6 +26,7 @@ import argparse
 import sys
 
 from lib import git
+from lib.patches import resolve_manifest
 from pathlib import Path
 
 def main(argv):
@@ -42,9 +43,27 @@ def main(argv):
       nargs='?',
       help="range of patches to export. Defaults to all commits since the "
            "most recent tag or remote branch.")
+  selection = parser.add_mutually_exclusive_group()
+  selection.add_argument("--channel", choices=['master', 'beta', 'stable'],
+      help="select .patches-<channel> from the shared patch collection")
+  selection.add_argument("--manifest",
+      help="select .patches or an explicit .patches-<channel> manifest")
+  parser.add_argument("--update-shared", action="store_true",
+      help="allow exported changes to patches referenced by other manifests")
+  parser.add_argument("--dry-run", action="store_true",
+      help="check whether export would change files, without writing them")
   args = parser.parse_args(argv)
 
-  git.export_patches(Path(args.flutter).expanduser().resolve(strict=False), Path(args.patches_dir).expanduser().resolve(strict=False), patch_range=args.patch_range, grep=args.grep)
+  try:
+    patch_dir = Path(args.patches_dir).expanduser().resolve(strict=False)
+    manifest = resolve_manifest(
+        patch_dir, f'.patches-{args.channel}' if args.channel else args.manifest)
+    git.export_patches(
+        Path(args.flutter).expanduser().resolve(strict=False), patch_dir,
+        patch_range=args.patch_range, grep=args.grep, manifest=manifest,
+        update_shared=args.update_shared, dry_run=args.dry_run)
+  except (ValueError, OSError, RuntimeError) as error:
+    parser.exit(1, f'{error}\n')
 
 
 if __name__ == '__main__':
