@@ -1,21 +1,28 @@
 name: Assemble Fork
-description: 'Check out an upstream Flutter revision and apply a fork patch collection; requires workflow-level Dart setup'
+description: >-
+  Check out an upstream Flutter revision into the configured fork directory and
+  apply an ordered patch collection. Requires Dart to be set up by the calling workflow.
 inputs:
   flutter_ref:
     required: true
-    description: Upstream Flutter branch, tag, or revision
+    description: >-
+      Upstream Flutter branch, tag, or revision to use as the fork's base
+      (typically the most recent commit on either master, stable, or beta).
   flutter_repo:
     required: false
     default: flutter/flutter
-    description: Upstream GitHub repository
+    description: GitHub repository to use as the fork's upstream base (usually flutter/flutter)
   fork_path:
     required: false
     default: fork
-    description: SDK checkout path relative to the workflow workspace
+    description: >-
+      SDK checkout path relative to the workflow workspace. Pass the same path
+      to subsequent engine build and publication actions.
   patches_path:
     required: false
     default: patches
-    description: Patch checkout path relative to the workflow workspace
+    description: >-
+      Patch checkout path relative to the workflow workspace, separate from the SDK checkout.
   patches_repo:
     required: true
     description: GitHub repository containing the fork's patches
@@ -26,7 +33,7 @@ inputs:
   patches_manifest:
     required: false
     default: .patches
-    description: Manifest selecting the ordered patch collection
+    description: Manifest filename in the patch repository selecting the ordered patch collection
   git_user_name:
     required: true
     description: Git author and committer name for assembly commits
@@ -36,11 +43,21 @@ inputs:
   token:
     required: false
     default: ${{ github.token }}
-    description: Token with checkout access and destination write access if publishing later
+    description: >-
+      An access token, such as a personal access token (PAT) or organization token,
+      with read access to the upstream and patch repositories. If the assembled
+      checkout will later be published, the token also needs write access to the
+      destination fork. This action does not push, but checkout persists the
+      credentials used by subsequent publication steps, so supply the publishing
+      token up front during checkout and assembly.
   fetch_depth:
     required: false
     default: '0'
-    description: Upstream checkout depth; full history supports engine hash selection
+    description: >-
+      Git fetch depth for the upstream checkout. Assembly walks engine history
+      to select an engine hash. Zero fetches full history; a shallow checkout
+      (depth 1 or greater) can select an unexpected engine hash. Use shallow
+      history at your own discretion.
 
 runs:
   using: composite
@@ -72,6 +89,7 @@ runs:
         ref: ${{ inputs.patches_ref }}
         token: ${{ inputs.token }}
 
+    # Pin the engine version so the Flutter tool can find a precompiled engine.
     - name: Save engine hash
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.fork_path }}

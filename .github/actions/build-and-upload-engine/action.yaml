@@ -1,5 +1,7 @@
 name: Build and Upload Engine
-description: Build a Flutter fork's engine and optionally upload its artifacts to GCS
+description: >-
+  Build a Flutter fork's engine with a selected gclient setup and Engine Tool
+  configuration, and optionally upload its artifacts to Google Cloud Storage.
 inputs:
   fork_path:
     required: false
@@ -7,21 +9,36 @@ inputs:
     description: SDK checkout path relative to the workflow workspace
   gclient:
     required: true
-    description: Configuration name from the SDK checkout's engine/scripts directory
+    description: >-
+      Name of the gclient configuration in the SDK checkout's engine/scripts
+      directory, without the .gclient suffix. Nest's example workflows use slim
+      configurations to reduce checkout size so engine builds can fit on a
+      standard GitHub runner.
   config_name:
     required: true
-    description: Flutter Engine Tool configuration from engine/src/flutter/ci/builders
+    description: >-
+      Name of a Flutter Engine Tool (et) configuration, as defined in a builder
+      configuration under engine/src/flutter/ci/builders.
   engine_version:
     required: true
-    description: Engine hash used to identify the uploaded artifacts
+    description: >-
+      Engine hash used to identify the uploaded artifacts. It should match the
+      engine version pinned in the assembled fork that will consume these builds,
+      so the Flutter tool can locate the corresponding precompiled engine.
   gcp_credentials:
     required: false
     default: ''
-    description: Base64-encoded service account credentials for the destination bucket
+    description: >-
+      Base64-encoded Google Cloud service account JSON credentials with access
+      to the bucket storing the engine binaries. Leave empty to use credentials
+      already configured on the runner.
   gcp_bucket:
     required: false
     default: ''
-    description: Destination GCS bucket; leave empty to build without uploading
+    description: >-
+      Google Cloud Storage bucket for engine build binaries, published in the
+      artifact layout expected by the Flutter tool for downloads. Leave empty
+      to build without uploading.
 
 runs:
   using: composite
@@ -61,8 +78,10 @@ runs:
       run: |
         set -euo pipefail
         git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git "$HOME/depot_tools"
+        # Append depot_tools to PATH for subsequent steps.
         echo "$HOME/depot_tools" >> "$GITHUB_PATH"
 
+    # Use the selected gclient configuration to limit engine checkout size.
     - name: Copy gclient file
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.fork_path }}
@@ -87,6 +106,7 @@ runs:
         CONFIG_NAME: ${{ inputs.config_name }}
       run: ./flutter/bin/et build --config "$CONFIG_NAME"
 
+    # Publish under the engine hash in the artifact layout used by the Flutter tool.
     - name: Copy zip archives
       if: ${{ inputs.gcp_bucket != '' && !contains(inputs.config_name, 'test') && hashFiles(format('{0}/engine/src/out/{1}/zip_archives/**', inputs.fork_path, inputs.config_name)) != '' }}
       shell: bash

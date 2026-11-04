@@ -1,5 +1,7 @@
 name: Publish Fork
-description: Force push an assembled checkout to the selected fork branch
+description: >-
+  Force-push an assembled checkout to the selected fork branch, replacing
+  the destination branch's history and contents.
 inputs:
   fork_path:
     required: false
