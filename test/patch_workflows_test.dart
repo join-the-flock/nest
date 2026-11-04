@@ -87,6 +87,14 @@ void main() {
           contains(environment['FLUTTER_BRANCH']));
     });
 
+    test('CI checks PRs and main pushes without duplicate feature-branch runs',
+        () {
+      final events =
+          _workflow('test-publication-preflight.yaml')['on'] as YamlMap;
+      expect((events['push'] as YamlMap)['branches'], ['main']);
+      expect((events['pull_request'] as YamlMap)['branches'], isNull);
+    });
+
     test('CI runs these tests when any assembly caller changes', () {
       final events =
           _workflow('test-publication-preflight.yaml')['on'] as YamlMap;
