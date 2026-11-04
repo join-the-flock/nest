@@ -64,7 +64,8 @@ jobs:
           flutter_ref: ${{ matrix.config }}
           token: ${{ secrets.REPO_WORKFLOW_PAT }}
           patches_repo: ${{ env.PATCHES_REPO }}
-          patches_ref: ${{ matrix.config }}
+          patches_ref: main
+          patches_manifest: .patches-${{ matrix.config }}
 
       - name: Check out the Flock demo for this channel
         uses: actions/checkout@v4

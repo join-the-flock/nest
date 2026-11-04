@@ -11,6 +11,7 @@ on:
       - 'analysis_options.yaml'
       - '.github/workflows/test-publication-preflight.yaml'
       - '.github/workflows/daily-flock-rebase.yaml'
+      - '.github/workflows/build-and-upload-engine-variants.yaml'
   push:
     paths:
       - 'tools/**'
@@ -21,6 +22,7 @@ on:
       - 'analysis_options.yaml'
       - '.github/workflows/test-publication-preflight.yaml'
       - '.github/workflows/daily-flock-rebase.yaml'
+      - '.github/workflows/build-and-upload-engine-variants.yaml'
 
 permissions:
   contents: read

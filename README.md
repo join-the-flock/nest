@@ -69,8 +69,9 @@ committing.
 The assembly action accepts the same selection through `patches_manifest`,
 which defaults to `.patches` for existing callers. For the new layout, callers
 must select patch repository ref `main` and the matching `.patches-<channel>`
-manifest. The daily and engine-build workflow callers still need that cutover;
-updating the tools alone does not switch publication away from channel branches.
+manifest. Daily release and engine-build workflows use this selection: patch
+repository `main`, with the manifest matching the Flutter channel. Flutter, Flock
+distribution, and flock-demo branches remain channel-specific.
 
 ## Validation before daily publication
 
@@ -79,7 +80,8 @@ the Nest checkout on GitHub Actions, after assembling each channel and before
 pushing that channel to `join-the-flock/flock`.
 
 On that runner, Nest checks out upstream `flutter/flutter` into `flock/` and
-applies the matching channel's patches from `join-the-flock/flock-patches`.
+applies the matching `.patches-master`, `.patches-beta`, or `.patches-stable`
+manifest from the `main` branch of `join-the-flock/flock-patches`.
 It also checks out `join-the-flock/flock-demo` into `flock-demo/`. The validation
 script uses the assembled SDK in `flock/` to check the app in `flock-demo/`.
 The script does not publish anything; Nest's next workflow step publishes only
@@ -123,6 +125,8 @@ build and platform tests before those binaries are distributed.
 Nest's own tests live in `test/`. Run `dart pub get` and `dart test` from the Nest
 repository. The patch-tool tests exercise real imports and exports in temporary
 Git repositories, including channel isolation and multi-commit round trips.
+Workflow tests verify that every assembly caller selects patch repository `main`
+and the manifest matching its Flutter channel.
 The publication preflight tests simulate Flutter command responses. Neither suite
 downloads Flutter or contacts the Flock or flock-demo repositories.
 Nest's `test-publication-preflight.yaml`
