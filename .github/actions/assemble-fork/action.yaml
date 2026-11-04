@@ -13,27 +13,26 @@ inputs:
     default: flutter/flutter
     description: GitHub repository to use as the fork's upstream base (usually flutter/flutter)
   fork_path:
-    required: false
-    default: fork
+    required: true
     description: >-
-      SDK checkout path relative to the workflow workspace. Pass the same path
-      to subsequent engine build and publication actions.
+      Workspace directory path where the fork will be created (e.g., "flock" for Flock). Pass 
+      the same path to subsequent engine build and publication actions.
   patches_path:
     required: false
     default: patches
     description: >-
-      Patch checkout path relative to the workflow workspace, separate from the SDK checkout.
+      Workspace directory path where the fork's patch files will be checked out. Defaults to "patches".
   patches_repo:
     required: true
-    description: GitHub repository containing the fork's patches
+    description: GitHub repository containing the fork's patches.
   patches_ref:
     required: false
     default: main
-    description: Patch repository branch, tag, or revision
+    description: Patch repository branch, tag, or revision.
   patches_manifest:
     required: false
     default: .patches
-    description: Manifest filename in the patch repository selecting the ordered patch collection
+    description: File name of the patch manifest to use for this fork build.
   git_user_name:
     required: true
     description: Git author and committer name for assembly commits

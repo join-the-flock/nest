@@ -93,13 +93,14 @@ Nest's shared actions accept fork-specific settings from their callers:
 
 | Action | Inputs to configure |
 | --- | --- |
-| `assemble-fork` | Required: `flutter_ref`, `patches_repo`, `git_user_name`, `git_user_email`. Optional: `flutter_repo` (defaults to `flutter/flutter`), `fork_path` (`fork`), `patches_path` (`patches`), `patches_ref` (`main`), `patches_manifest` (`.patches`), `fetch_depth` (`0`), and `token` (the workflow token). |
-| `build-and-upload-engine` | Required: `gclient`, `config_name`, `engine_version`. Optional: `fork_path` (`fork`), `gcp_bucket`, and base64-encoded `gcp_credentials`. An empty bucket builds without uploading. |
-| `publish-fork` | Required: `destination_repo` and `destination_branch`. Optional: `fork_path` (`fork`). It force-pushes the selected checkout's HEAD to the destination branch. |
+| `assemble-fork` | Required: `fork_path`, `flutter_ref`, `patches_repo`, `git_user_name`, `git_user_email`. Optional: `flutter_repo` (defaults to `flutter/flutter`), `patches_path` (`patches`), `patches_ref` (`main`), `patches_manifest` (`.patches`), `fetch_depth` (`0`), and `token` (the workflow token). |
+| `build-and-upload-engine` | Required: `fork_path`, `gclient`, `config_name`, `engine_version`. Optional: `gcp_bucket`, and base64-encoded `gcp_credentials`. An empty bucket builds without uploading. |
+| `publish-fork` | Required: `fork_path`, `destination_repo`, and `destination_branch`. It force-pushes the selected checkout's HEAD to the destination branch. |
 | `run-framework-tests` | Required: `flutter_path`, an absolute SDK path or a path relative to the workflow workspace. Tests invoke that SDK directly. |
 
 Action definitions live under `.github/actions/<action>/action.yaml`. Paths for
-`fork_path` and `patches_path` are relative to the workflow workspace. Use
+`fork_path` and `patches_path` are relative to the workflow workspace. Every
+caller must explicitly supply `fork_path`; it has no default. Use
 separate checkout directories and pass the same `fork_path` to assembly, engine
 builds, and publication. Git identity is configured only in the assembled
 checkout, not globally. Assembly preserves import diagnostics in the workflow

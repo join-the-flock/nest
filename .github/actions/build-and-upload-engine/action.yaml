@@ -4,8 +4,7 @@ description: >-
   configuration, and optionally upload its artifacts to Google Cloud Storage.
 inputs:
   fork_path:
-    required: false
-    default: fork
+    required: true
     description: SDK checkout path relative to the workflow workspace
   gclient:
     required: true

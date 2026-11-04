@@ -4,8 +4,7 @@ description: >-
   the destination branch's history and contents.
 inputs:
   fork_path:
-    required: false
-    default: fork
+    required: true
     description: SDK checkout path relative to the workflow workspace
   destination_repo:
     required: true
