@@ -50,6 +50,12 @@ jobs:
       - name: Check out the Nest Repository
         uses: actions/checkout@v4
 
+      - name: Set up Dart for Nest tooling
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+          problem-matcher: true
+
       - name: Assemble Flock
         uses: ./.github/actions/assemble-flock
         with:
