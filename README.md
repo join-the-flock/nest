@@ -151,7 +151,7 @@ Workflow tests verify that every assembly caller selects patch repository `main`
 and the manifest matching its Flutter channel.
 The publication preflight tests simulate Flutter command responses. These tests
 do not download Flutter or contact the Flock or flock-demo repositories.
-Nest's `test-publication-preflight.yaml`
+Nest's `test-nest-tools.yaml`
 workflow runs analysis and these tests on pull requests and pushes to `main` that change
 the tools, assembly action, tests, package dependencies, analyzer configuration,
 or the related workflows. It runs from the Nest checkout on GitHub Actions using

@@ -5,27 +5,27 @@ on:
     paths:
       - 'tools/**'
       - 'nest_patches/**'
-      - '.github/actions/assemble-flock/action.yaml'
+      - '.github/actions/assemble-fork/action.yaml'
       - 'test/**'
       - 'pubspec.yaml'
       - 'pubspec.lock'
       - 'analysis_options.yaml'
-      - '.github/workflows/test-publication-preflight.yaml'
+      - '.github/workflows/test-nest-tools.yaml'
       - '.github/workflows/daily-flock-rebase.yaml'
-      - '.github/workflows/build-and-upload-engine-variants.yaml'
+      - '.github/workflows/build-and-upload-flock-engine-variants.yaml'
   push:
     branches: [main]
     paths:
       - 'tools/**'
       - 'nest_patches/**'
-      - '.github/actions/assemble-flock/action.yaml'
+      - '.github/actions/assemble-fork/action.yaml'
       - 'test/**'
       - 'pubspec.yaml'
       - 'pubspec.lock'
       - 'analysis_options.yaml'
-      - '.github/workflows/test-publication-preflight.yaml'
+      - '.github/workflows/test-nest-tools.yaml'
       - '.github/workflows/daily-flock-rebase.yaml'
-      - '.github/workflows/build-and-upload-engine-variants.yaml'
+      - '.github/workflows/build-and-upload-flock-engine-variants.yaml'
 
 permissions:
   contents: read
