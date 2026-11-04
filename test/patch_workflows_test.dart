@@ -71,11 +71,52 @@ void main() {
           _workflow('test-publication-preflight.yaml')['on'] as YamlMap;
       for (final event in ['pull_request', 'push']) {
         final paths = (events[event] as YamlMap)['paths'] as YamlList;
+        expect(paths, containsAll(['nest_patches/**', 'tools/**']));
         for (final workflow
             in callers.map((caller) => caller.workflow).toSet()) {
           expect(paths, contains('.github/workflows/$workflow'), reason: event);
         }
       }
+    });
+
+    test('CI resolves and tests nest_patches as an independent package', () {
+      final workflow = _workflow('test-publication-preflight.yaml');
+      final job = (workflow['jobs'] as YamlMap)['test-preflight'] as YamlMap;
+      final steps = (job['steps'] as YamlList).cast<YamlMap>().toList();
+      final packageSteps = steps
+          .where((step) => step['working-directory'] == 'nest_patches')
+          .toList();
+      expect(packageSteps, hasLength(2));
+      expect(packageSteps.first['run'], 'dart pub get --enforce-lockfile');
+      expect(packageSteps.last['run'], contains('dart analyze'));
+      expect(packageSteps.last['run'], contains('dart test'));
+    });
+
+    test('assembly installs independent Dart and resolves Nest before patching',
+        () {
+      final action = loadYaml(File('.github/actions/assemble-flock/action.yaml')
+          .readAsStringSync()) as YamlMap;
+      final steps = ((action['runs'] as YamlMap)['steps'] as YamlList)
+          .cast<YamlMap>()
+          .toList();
+      final setup =
+          steps.indexWhere((step) => step['uses'] == 'dart-lang/setup-dart@v1');
+      final dependencies = steps.indexWhere(
+          (step) => step['run'] == 'dart pub get --enforce-lockfile');
+      final apply = steps.indexWhere((step) => '${step['run']}'
+          .contains('dart run nest_patches/bin/git_import_patches.dart -p'));
+      expect(setup, greaterThanOrEqualTo(0));
+      expect(dependencies, greaterThan(setup));
+      expect(apply, greaterThan(dependencies));
+      expect(steps[dependencies]['working-directory'],
+          r'${{ github.action_path }}/../../..');
+      final patchDependencies = steps.indexWhere((step) =>
+          step['working-directory'] ==
+          r'${{ github.action_path }}/../../../nest_patches');
+      expect(patchDependencies, greaterThan(setup));
+      expect(apply, greaterThan(patchDependencies));
+      expect(
+          steps[patchDependencies]['run'], 'dart pub get --enforce-lockfile');
     });
   });
 }

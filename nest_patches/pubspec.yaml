@@ -1,0 +1,14 @@
+name: nest_patches
+description: Import, export, and manage ordered collections of Git mail patches.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  args: ^2.7.0
+  path: ^1.9.1
+
+dev_dependencies:
+  test: ^1.25.0

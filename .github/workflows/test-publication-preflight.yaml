@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'tools/**'
+      - 'nest_patches/**'
       - '.github/actions/assemble-flock/action.yaml'
       - 'test/**'
       - 'pubspec.yaml'
@@ -15,6 +16,7 @@ on:
   push:
     paths:
       - 'tools/**'
+      - 'nest_patches/**'
       - '.github/actions/assemble-flock/action.yaml'
       - 'test/**'
       - 'pubspec.yaml'
@@ -43,7 +45,17 @@ jobs:
       - name: Resolve Nest dependencies
         run: dart pub get --enforce-lockfile
 
+      - name: Resolve patch package dependencies
+        working-directory: nest_patches
+        run: dart pub get --enforce-lockfile
+
       - name: Analyze and test Nest tools
         run: |
           dart analyze tools/flock_publication_preflight_checks.dart test
+          dart test
+
+      - name: Analyze and test patch package
+        working-directory: nest_patches
+        run: |
+          dart analyze
           dart test

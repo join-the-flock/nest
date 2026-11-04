@@ -32,13 +32,19 @@ A shared patch repository can keep `.patches-master`, `.patches-beta`, and
 order. Patch files live together at the repository root; channels can share files
 or select different dated adaptations of the same change.
 
+Patch tools use Dart and Git. Install a standalone Dart SDK satisfying
+`nest_patches/pubspec.yaml` and run `dart pub get --enforce-lockfile` in
+`nest_patches/` first. They do not depend on the Flutter checkout's bundled Dart
+SDK or on Python. Patch commands, collection handling, Git import/export, and
+their tests live in the [`nest_patches`](nest_patches/README.md) Dart package.
+
 Run these commands from the Nest repository, with the desired patch repository
 checked out in `patches/` and the matching Flutter checkout in `flock/`:
 
 ```sh
-tools/git-import-patches -p patches --channel stable -3
-tools/git-export-patches -p patches --channel stable --dry-run
-tools/git-export-patches -p patches --channel stable
+dart run nest_patches/bin/git_import_patches.dart -p patches --channel stable -3
+dart run nest_patches/bin/git_export_patches.dart -p patches --channel stable --dry-run
+dart run nest_patches/bin/git_export_patches.dart -p patches --channel stable
 ```
 
 Both commands accept `--flutter /path/to/sdk` to select a different Flutter
@@ -72,6 +78,8 @@ must select patch repository ref `main` and the matching `.patches-<channel>`
 manifest. Daily release and engine-build workflows use this selection: patch
 repository `main`, with the manifest matching the Flutter channel. Flutter, Flock
 distribution, and flock-demo branches remain channel-specific.
+The assembly action installs Dart and resolves Nest dependencies before applying
+patches, including when called from engine-build workflows.
 
 ## Validation before daily publication
 
@@ -122,13 +130,20 @@ workflow, not the full Flutter test suite or validation of custom engine builds.
 Native platforms, including Flock's iOS logging patch, need separate engine
 build and platform tests before those binaries are distributed.
 
-Nest's own tests live in `test/`. Run `dart pub get` and `dart test` from the Nest
-repository. The patch-tool tests exercise real imports and exports in temporary
-Git repositories, including channel isolation and multi-commit round trips.
+Nest's integration tests live in `test/`. Run `dart pub get --enforce-lockfile`
+and `dart test` from the Nest repository. Then run the same commands from
+`nest_patches/` for the package's own tests. The patch-tool tests exercise
+real imports and exports in temporary Git repositories, including channel
+isolation, multi-commit round trips, file additions, edits, deletions, renames,
+executable modes, symlinks, binary payloads,
+CRLF and Unicode text, empty files, missing final newlines, commit metadata,
+three-way merges, conflict recovery, and invalid inputs. Run analysis with
+`dart analyze tools/flock_publication_preflight_checks.dart test` in Nest
+and `dart analyze` in `nest_patches/`.
 Workflow tests verify that every assembly caller selects patch repository `main`
 and the manifest matching its Flutter channel.
-The publication preflight tests simulate Flutter command responses. Neither suite
-downloads Flutter or contacts the Flock or flock-demo repositories.
+The publication preflight tests simulate Flutter command responses. These tests
+do not download Flutter or contact the Flock or flock-demo repositories.
 Nest's `test-publication-preflight.yaml`
 workflow runs analysis and these tests on pull requests and pushes that change
 the tools, assembly action, tests, package dependencies, analyzer configuration,
