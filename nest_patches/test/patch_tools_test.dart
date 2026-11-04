@@ -11,7 +11,7 @@ void main() {
     late String base;
 
     setUp(() async {
-      root = Directory.systemTemp.createTempSync('nest-patch-tools-');
+      root = Directory.systemTemp.createTempSync('nest patch tools-');
       source = Directory('${root.path}/source')..createSync();
       collection = Directory('${root.path}/patches')..createSync();
       await _initialize(source);
@@ -30,6 +30,253 @@ void main() {
     });
 
     tearDown(() => root.deleteSync(recursive: true));
+
+    group('Patch contents and Git behavior >', () {
+      test('round-trips edits, deletes, renames, modes, and symlinks',
+          () async {
+        await _git(source, ['reset', '--hard', base]);
+        File('${source.path}/delete.txt').writeAsStringSync('delete me\n');
+        File('${source.path}/before.txt').writeAsStringSync('rename me\n');
+        File('${source.path}/script.sh').writeAsStringSync('#!/bin/sh\n');
+        await _commit(source, 'Prepare file operations');
+        final operationBase = await _git(source, ['rev-parse', 'HEAD']);
+        await _git(
+            source, ['update-ref', 'refs/patches/upstream-head', 'HEAD']);
+        File('${source.path}/base.txt').writeAsStringSync('modified\n');
+        File('${source.path}/delete.txt').deleteSync();
+        await _git(source, ['mv', 'before.txt', 'after.txt']);
+        await _git(source, ['update-index', '--chmod=+x', 'script.sh']);
+        // Commit the index mode directly: git add would reset it from disk.
+        await Process.run('chmod', ['+x', '${source.path}/script.sh']);
+        Link('${source.path}/link.txt').createSync('after.txt');
+        await _commit(
+            source, 'File operations\n\nPatch-Filename: operations.patch');
+        await _expectSuccess(
+            await _export(source, collection, ['--channel', 'master']));
+        final patch =
+            File('${collection.path}/operations.patch').readAsStringSync();
+        expect(patch, contains('deleted file mode'));
+        expect(patch, contains('rename from before.txt'));
+        expect(patch, contains('new mode 100755'));
+        expect(patch, contains('new file mode 120000'));
+        final target = await _baseCheckout(root, source, operationBase);
+        await _expectSuccess(
+            await _import(target, collection, ['--channel', 'master']));
+        expect(await _git(target, ['rev-parse', 'HEAD^{tree}']),
+            await _git(source, ['rev-parse', 'HEAD^{tree}']));
+        expect(File('${target.path}/delete.txt').existsSync(), isFalse);
+        expect(Link('${target.path}/link.txt').targetSync(), 'after.txt');
+        await _expectRoundTrip(target, collection, root, 'operations.patch');
+      });
+
+      for (final entry in <String, List<int>>{
+        'crlf': utf8.encode('first\r\nsecond\r\n'),
+        'no_final_newline': utf8.encode('no final newline'),
+        'unicode': utf8.encode('Hello, 世界 🐦\n'),
+        'binary': List.generate(512, (index) => index % 256),
+        'empty': [],
+      }.entries) {
+        test('round-trips ${entry.key} content without byte changes', () async {
+          File('${source.path}/space ${entry.key}.txt')
+              .writeAsBytesSync(entry.value);
+          await _commit(
+              source, 'Add ${entry.key}\n\nPatch-Filename: contents.patch');
+          await _expectSuccess(await _export(source, collection,
+              ['--channel', 'master', '--grep', 'Add ${entry.key}']));
+          final target = await _baseCheckout(root, source, base);
+          await _expectSuccess(
+              await _import(target, collection, ['--channel', 'master']));
+          expect(
+              File('${target.path}/space ${entry.key}.txt').readAsBytesSync(),
+              entry.value);
+          await _expectRoundTrip(target, collection, root, 'contents.patch');
+        });
+      }
+
+      test('preserves author, date, subject, body and strips internal metadata',
+          () async {
+        const message =
+            'A descriptive subject\n\nExplanation.\n\nSigned-off-by: Tester <test@example.invalid>';
+        await _git(source, [
+          'commit',
+          '--amend',
+          '--author',
+          'Original Author <original@example.invalid>',
+          '--date',
+          '2020-01-02T03:04:05+0200',
+          '-qm',
+          message
+        ]);
+        await _expectSuccess(
+            await _export(source, collection, ['--channel', 'master']));
+        const name = 'a_descriptive_subject.patch';
+        final target = await _baseCheckout(root, source, base);
+        await _expectSuccess(
+            await _import(target, collection, ['--channel', 'master']));
+        expect(await _git(target, ['log', '-1', '--format=%an <%ae>%n%aI']),
+            'Original Author <original@example.invalid>\n2020-01-02T03:04:05+02:00');
+        final body = await _git(target, ['log', '-1', '--format=%B']);
+        expect(body, contains(message));
+        expect(body, contains('Patch-Filename: $name'));
+        final roundTrip =
+            await _expectRoundTrip(target, collection, root, name);
+        expect(roundTrip, isNot(contains('Patch-Dir:')));
+        expect(roundTrip, isNot(contains('Patch-Filename:')));
+      });
+
+      test('applies dependent patch files in manifest order', () async {
+        File('${source.path}/feature.txt')
+            .writeAsStringSync('second version\n');
+        await _commit(source, 'Update feature\n\nPatch-Filename: update.patch');
+        await _expectSuccess(
+            await _export(source, collection, ['--channel', 'master']));
+        final target = await _baseCheckout(root, source, base);
+        await _expectSuccess(
+            await _import(target, collection, ['--channel', 'master']));
+        expect(File('${target.path}/feature.txt').readAsStringSync(),
+            'second version\n');
+        expect(
+            await _git(
+                target, ['log', '--reverse', '--format=%s', '$base..HEAD']),
+            'Add feature\nUpdate feature');
+      });
+
+      test(
+          'uses explicit ranges and falls back to tags without an upstream ref',
+          () async {
+        await _git(source, ['tag', 'baseline', base]);
+        await _git(source, ['update-ref', '-d', 'refs/patches/upstream-head']);
+        await _expectSuccess(await _export(
+            source, collection, ['--channel', 'master', '--dry-run']));
+        await _expectSuccess(await _export(source, collection,
+            ['--channel', 'master', '$base..HEAD', '--dry-run']));
+      });
+
+      for (final threeway in [false, true]) {
+        test(
+            'reports a conflict and leaves git am recoverable (3way=$threeway)',
+            () async {
+          await _git(source, ['reset', '--hard', base]);
+          File('${source.path}/base.txt').writeAsStringSync('patch version\n');
+          await _commit(source, 'Edit base\n\nPatch-Filename: edit.patch');
+          await _expectSuccess(
+              await _export(source, collection, ['--channel', 'master']));
+          final target = await _baseCheckout(root, source, base);
+          File('${target.path}/base.txt')
+              .writeAsStringSync('upstream version\n');
+          await _commit(target, 'Upstream edit');
+          final upstream = await _git(target, ['rev-parse', 'HEAD']);
+          final result = await _import(
+              target, collection, ['--channel', 'master', if (threeway) '-3']);
+          expect(result.exitCode, isNot(0));
+          expect(
+              await _git(target, ['rev-parse', 'refs/patches/upstream-head']),
+              upstream);
+          await _git(target, ['am', '--abort']);
+          expect(await _git(target, ['rev-parse', 'HEAD']), upstream);
+          expect(await _git(target, ['status', '--porcelain']), isEmpty);
+        });
+      }
+
+      test('3way merges when changed context prevents direct application',
+          () async {
+        await _git(source, ['reset', '--hard', base]);
+        File('${source.path}/base.txt')
+            .writeAsStringSync('one\ntwo\nthree\nfour\nfive\n');
+        await _commit(source, 'Prepare merge');
+        final mergeBase = await _git(source, ['rev-parse', 'HEAD']);
+        await _git(
+            source, ['update-ref', 'refs/patches/upstream-head', 'HEAD']);
+        File('${source.path}/base.txt')
+            .writeAsStringSync('ONE\ntwo\nthree\nfour\nfive\n');
+        await _commit(
+            source, 'Change first line\n\nPatch-Filename: merge.patch');
+        await _expectSuccess(
+            await _export(source, collection, ['--channel', 'master']));
+        final target = await _baseCheckout(root, source, mergeBase);
+        File('${target.path}/base.txt')
+            .writeAsStringSync('one\ntwo\nTHREE\nfour\nfive\n');
+        await _commit(target, 'Change context');
+        final direct =
+            await _import(target, collection, ['--channel', 'master']);
+        expect(direct.exitCode, isNot(0));
+        await _git(target, ['am', '--abort']);
+        await _expectSuccess(
+            await _import(target, collection, ['--channel', 'master', '-3']));
+        expect(File('${target.path}/base.txt').readAsStringSync(),
+            'ONE\ntwo\nTHREE\nfour\nfive\n');
+      });
+
+      test('rejects missing and malformed patch data', () async {
+        final target = await _baseCheckout(root, source, base);
+        File('${collection.path}/.patches-master')
+            .writeAsStringSync('missing.patch\n');
+        expect(
+            (await _import(target, collection, ['--channel', 'master']))
+                .exitCode,
+            isNot(0));
+        expect(await _git(target, ['rev-parse', 'HEAD']), base);
+        File('${collection.path}/missing.patch')
+            .writeAsStringSync('not a patch\n');
+        expect(
+            (await _import(target, collection, ['--channel', 'master']))
+                .exitCode,
+            isNot(0));
+        expect(await _git(target, ['rev-parse', 'HEAD']), base);
+      });
+
+      test('preserves unrelated local work during import', () async {
+        final target = await _baseCheckout(root, source, base);
+        File('${target.path}/base.txt').writeAsStringSync('local changes\n');
+        File('${target.path}/untracked.txt').writeAsStringSync('keep\n');
+        await _expectSuccess(
+            await _import(target, collection, ['--channel', 'master']));
+        expect(File('${target.path}/base.txt').readAsStringSync(),
+            'local changes\n');
+        expect(
+            File('${target.path}/untracked.txt').readAsStringSync(), 'keep\n');
+      });
+    });
+
+    group('Manifest validation >', () {
+      for (final contents in [
+        '',
+        '\n',
+        'feature.patch\nfeature.patch\n',
+        'feature.patch\nfeature_2026-09-08.patch\n',
+        ' feature.patch\n',
+        'wrong.txt\n',
+        '.patch\n',
+        'feature_2026-02-29.patch\n'
+      ]) {
+        test(
+            'rejects invalid manifest ${jsonEncode(contents)} without mutation',
+            () async {
+          File('${collection.path}/.patches-master')
+              .writeAsStringSync(contents);
+          final before = _snapshot(collection);
+          final target = await _baseCheckout(root, source, base);
+          expect(
+              (await _import(target, collection, ['--channel', 'master']))
+                  .exitCode,
+              isNot(0));
+          expect(await _git(target, ['rev-parse', 'HEAD']), base);
+          expect(_snapshot(collection), before);
+        });
+      }
+      test('rejects symlink manifests on import and export', () async {
+        File('${collection.path}/.patches-master').deleteSync();
+        Link('${collection.path}/.patches-master').createSync('.patches-beta');
+        final target = await _baseCheckout(root, source, base);
+        for (final result in [
+          await _import(target, collection, ['--channel', 'master']),
+          await _export(source, collection, ['--channel', 'master'])
+        ]) {
+          expect(result.exitCode, isNot(0));
+          expect(result.stderr, contains('regular file'));
+        }
+      });
+    });
 
     group('Import selection >', () {
       test('imports the selected dated variant and preserves the collection',
@@ -412,15 +659,19 @@ Future<ProcessResult> _import(Directory target, Directory collection,
 
 Future<ProcessResult> _runTool(String name, Directory repository,
     Directory collection, List<String> arguments) {
-  return Process.run('python3', [
-    '-B',
-    '${Directory.current.path}/tools/$name',
-    '-f',
-    repository.path,
-    '-p',
-    collection.path,
-    ...arguments
-  ]);
+  final entryPoint = name.replaceAll('-', '_');
+  return Process.run(
+      Platform.resolvedExecutable,
+      [
+        'run',
+        '${Directory.current.path}/bin/$entryPoint.dart',
+        '-f',
+        repository.path,
+        '-p',
+        collection.path,
+        ...arguments
+      ],
+      workingDirectory: collection.parent.path);
 }
 
 Map<String, String> _snapshot(Directory directory) => {
@@ -453,4 +704,14 @@ Future<void> _changeFeature(Directory source) async {
   File('${source.path}/feature.txt').writeAsStringSync('changed feature\n');
   await _git(source, ['add', 'feature.txt']);
   await _git(source, ['commit', '--amend', '--no-edit', '-q']);
+}
+
+Future<String> _expectRoundTrip(Directory target, Directory collection,
+    Directory root, String filename) async {
+  final destination = Directory('${root.path}/round-trip')..createSync();
+  await _expectSuccess(
+      await _export(target, destination, ['--channel', 'master']));
+  final actual = File('${destination.path}/$filename').readAsBytesSync();
+  expect(actual, File('${collection.path}/$filename').readAsBytesSync());
+  return utf8.decode(actual);
 }

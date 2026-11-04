@@ -38,6 +38,21 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Set up Dart for patch tools
+      uses: dart-lang/setup-dart@v1
+      with:
+        sdk: stable
+
+    - name: Resolve Nest tooling dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../..
+      run: dart pub get --enforce-lockfile
+
+    - name: Resolve patch package dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../../nest_patches
+      run: dart pub get --enforce-lockfile
+
     - name: checkout base flutter ref
       uses: actions/checkout@v4
       with:
@@ -75,10 +90,10 @@ runs:
       run: |
         set -euo pipefail
 
-        if ! tools/git-import-patches -p patches --manifest "$PATCHES_MANIFEST" -3 2> patch_fail.log; then
-          echo "::error::git-import-patches failed. Showing conflicts and context…"
+        if ! dart run nest_patches/bin/git_import_patches.dart -p patches --manifest "$PATCHES_MANIFEST" -3 2> patch_fail.log; then
+          echo "::error::git_import_patches.dart failed. Showing conflicts and context…"
     
-          echo "::group::Last 200 lines of git-import-patches stderr"
+          echo "::group::Last 200 lines of git_import_patches.dart stderr"
           tail -n 200 patch_fail.log || true
           echo "::endgroup::"
     
