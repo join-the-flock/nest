@@ -57,7 +57,7 @@ jobs:
           problem-matcher: true
 
       - name: Assemble Flock
-        uses: ./.github/actions/assemble-flock
+        uses: ./.github/actions/assemble-fork
         with:
           flutter_ref: ${{ matrix.config }}
           token: ${{ secrets.REPO_WORKFLOW_PAT }}
@@ -96,7 +96,7 @@ jobs:
           retention-days: 14
 
       - name: Update Remote Flock Branch, will force push our assembled version (master, beta, stable)
-        uses: ./.github/actions/push-flock-repo
+        uses: ./.github/actions/publish-fork
         with:
           destination_repo: ${{ env.FLOCK_REPO }}
           destination_branch: ${{ matrix.config }}

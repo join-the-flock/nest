@@ -11,7 +11,7 @@ void main() {
         () {
       expect(callers.map((caller) => caller.workflow).toSet(), {
         'daily-flock-rebase.yaml',
-        'build-and-upload-engine-variants.yaml',
+        'build-and-upload-flock-engine-variants.yaml',
       });
     });
 
@@ -38,7 +38,7 @@ void main() {
               as YamlMap)[caller.job] as YamlMap;
           final steps = (job['steps'] as YamlList).cast<YamlMap>().toList();
           final assembly = steps.indexWhere(
-              (step) => step['uses'] == './.github/actions/assemble-flock');
+              (step) => step['uses'] == './.github/actions/assemble-fork');
           final setup = steps
               .take(assembly)
               .where((step) => step['uses'] == 'dart-lang/setup-dart@v1')
@@ -74,7 +74,7 @@ void main() {
 
       test('publishes to the matching Flock distribution channel', () {
         final publish = steps.singleWhere(
-            (step) => step['uses'] == './.github/actions/push-flock-repo');
+            (step) => step['uses'] == './.github/actions/publish-fork');
         expect((publish['with'] as YamlMap)['destination_branch'],
             r'${{ matrix.config }}');
       });
@@ -82,7 +82,7 @@ void main() {
 
     test('engine builds select an official Flutter channel', () {
       final environment =
-          _workflow('build-and-upload-engine-variants.yaml')['env'] as YamlMap;
+          _workflow('build-and-upload-flock-engine-variants.yaml')['env'] as YamlMap;
       expect(['master', 'beta', 'stable'],
           contains(environment['FLUTTER_BRANCH']));
     });
@@ -90,14 +90,14 @@ void main() {
     test('CI checks PRs and main pushes without duplicate feature-branch runs',
         () {
       final events =
-          _workflow('test-publication-preflight.yaml')['on'] as YamlMap;
+          _workflow('test-nest-tools.yaml')['on'] as YamlMap;
       expect((events['push'] as YamlMap)['branches'], ['main']);
       expect((events['pull_request'] as YamlMap)['branches'], isNull);
     });
 
     test('CI runs these tests when any assembly caller changes', () {
       final events =
-          _workflow('test-publication-preflight.yaml')['on'] as YamlMap;
+          _workflow('test-nest-tools.yaml')['on'] as YamlMap;
       for (final event in ['pull_request', 'push']) {
         final paths = (events[event] as YamlMap)['paths'] as YamlList;
         expect(paths, containsAll(['nest_patches/**', 'tools/**']));
@@ -109,7 +109,7 @@ void main() {
     });
 
     test('CI resolves and tests nest_patches as an independent package', () {
-      final workflow = _workflow('test-publication-preflight.yaml');
+      final workflow = _workflow('test-nest-tools.yaml');
       final job = (workflow['jobs'] as YamlMap)['test-preflight'] as YamlMap;
       final steps = (job['steps'] as YamlList).cast<YamlMap>().toList();
       final packageSteps = steps
@@ -124,7 +124,7 @@ void main() {
     test(
         'assembly resolves dependencies before patching without nesting Dart setup',
         () {
-      final action = loadYaml(File('.github/actions/assemble-flock/action.yaml')
+      final action = loadYaml(File('.github/actions/assemble-fork/action.yaml')
           .readAsStringSync()) as YamlMap;
       final steps = ((action['runs'] as YamlMap)['steps'] as YamlList)
           .cast<YamlMap>()
@@ -168,7 +168,7 @@ Iterable<_AssemblyCaller> _assemblyCallers() sync* {
       final job = entry.value as YamlMap;
       if (job['steps'] case final YamlList steps) {
         for (final step in steps.cast<YamlMap>()) {
-          if (step['uses'] == './.github/actions/assemble-flock') {
+          if (step['uses'] == './.github/actions/assemble-fork') {
             yield _AssemblyCaller(file.uri.pathSegments.last,
                 entry.key as String, step['with'] as YamlMap);
           }
