@@ -1,4 +1,4 @@
-name: Build Flutter Engine with Engine Tool (Matrix)
+name: Build and Upload Flock Engine Variants
 
 on:
   push:
@@ -45,6 +45,11 @@ jobs:
       - name: assemble flock
         uses: ./.github/actions/assemble-fork
         with:
+          fork_path: flock
+          patches_path: patches
+          patches_repo: ${{ vars.FLOCK_PATCHES_REPO }}
+          git_user_name: join-the-flock
+          git_user_email: join-the-flock@users.noreply.github.com
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
           patches_ref: main
           patches_manifest: .patches-${{ env.FLUTTER_BRANCH }}
@@ -52,6 +57,7 @@ jobs:
       - name: web build
         uses: ./.github/actions/build-and-upload-engine
         with:
+          fork_path: flock
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
           gcp_bucket: flutter-builds
           gclient: slim-linux-web
@@ -139,6 +145,11 @@ jobs:
       - name: assemble flock
         uses: ./.github/actions/assemble-fork
         with:
+          fork_path: flock
+          patches_path: patches
+          patches_repo: ${{ vars.FLOCK_PATCHES_REPO }}
+          git_user_name: join-the-flock
+          git_user_email: join-the-flock@users.noreply.github.com
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
           patches_ref: main
           patches_manifest: .patches-${{ env.FLUTTER_BRANCH }}
@@ -146,6 +157,7 @@ jobs:
       - name: android build
         uses: ./.github/actions/build-and-upload-engine
         with:
+          fork_path: flock
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
           gcp_bucket: flutter-builds
           gclient: slim-linux-android
@@ -216,6 +228,11 @@ jobs:
       - name: assemble flock
         uses: ./.github/actions/assemble-fork
         with:
+          fork_path: flock
+          patches_path: patches
+          patches_repo: ${{ vars.FLOCK_PATCHES_REPO }}
+          git_user_name: join-the-flock
+          git_user_email: join-the-flock@users.noreply.github.com
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
           patches_ref: main
           patches_manifest: .patches-${{ env.FLUTTER_BRANCH }}
@@ -223,6 +240,7 @@ jobs:
       - name: linux build
         uses: ./.github/actions/build-and-upload-engine
         with:
+          fork_path: flock
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
           gcp_bucket: flutter-builds
           gclient: slim-linux-desktop
@@ -372,6 +390,11 @@ jobs:
       - name: assemble flock
         uses: ./.github/actions/assemble-fork
         with:
+          fork_path: flock
+          patches_path: patches
+          patches_repo: ${{ vars.FLOCK_PATCHES_REPO }}
+          git_user_name: join-the-flock
+          git_user_email: join-the-flock@users.noreply.github.com
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
           patches_ref: main
           patches_manifest: .patches-${{ env.FLUTTER_BRANCH }}
@@ -379,6 +402,7 @@ jobs:
       - name: mac build
         uses: ./.github/actions/build-and-upload-engine
         with:
+          fork_path: flock
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
           gcp_bucket: flutter-builds
           gclient: slim-mac
@@ -456,6 +480,11 @@ jobs:
       - name: assemble flock
         uses: ./.github/actions/assemble-fork
         with:
+          fork_path: flock
+          patches_path: patches
+          patches_repo: ${{ vars.FLOCK_PATCHES_REPO }}
+          git_user_name: join-the-flock
+          git_user_email: join-the-flock@users.noreply.github.com
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
           patches_ref: main
           patches_manifest: .patches-${{ env.FLUTTER_BRANCH }}
@@ -463,6 +492,7 @@ jobs:
       - name: mac build
         uses: ./.github/actions/build-and-upload-engine
         with:
+          fork_path: flock
           gcp_credentials: ${{ secrets.GOOGLE_STORAGE_BUCKET_SECRET }}
           gcp_bucket: flutter-builds
           gclient: slim-mac
@@ -517,6 +547,11 @@ jobs:
       - name: assemble flock
         uses: ./.github/actions/assemble-fork
         with:
+          fork_path: flock
+          patches_path: patches
+          patches_repo: ${{ vars.FLOCK_PATCHES_REPO }}
+          git_user_name: join-the-flock
+          git_user_email: join-the-flock@users.noreply.github.com
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
           patches_ref: main
           patches_manifest: .patches-${{ env.FLUTTER_BRANCH }}
@@ -632,6 +667,11 @@ jobs:
       - name: assemble flock
         uses: ./.github/actions/assemble-fork
         with:
+          fork_path: flock
+          patches_path: patches
+          patches_repo: ${{ vars.FLOCK_PATCHES_REPO }}
+          git_user_name: join-the-flock
+          git_user_email: join-the-flock@users.noreply.github.com
           flutter_ref: ${{ env.FLUTTER_BRANCH }}
           patches_ref: main
           patches_manifest: .patches-${{ env.FLUTTER_BRANCH }}
@@ -651,5 +691,6 @@ jobs:
       - name: update our remote flock branch to use this engine hash
         uses: ./.github/actions/publish-fork
         with:
+          fork_path: flock
           destination_repo: ${{ env.FLOCK_REPO }}
           destination_branch: ${{ env.FLOCK_BRANCH }}

@@ -1,42 +1,49 @@
-name: 'Assemble Flock'
-description: 'Checkout flock and apply patches; requires Dart to be set up by the calling workflow'
+name: Assemble Fork
+description: 'Check out an upstream Flutter revision and apply a fork patch collection; requires workflow-level Dart setup'
 inputs:
   flutter_ref:
     required: true
-    description: "the ref of the flutter repo to use as a base (typically the most recent commit on either master, stable, or beta)"
-
+    description: Upstream Flutter branch, tag, or revision
   flutter_repo:
     required: false
-    description: "the flutter repo to use as a base"
     default: flutter/flutter
-
-  token: 
+    description: Upstream GitHub repository
+  fork_path:
     required: false
-    description: "An access token, such as a personal access token (PAT) or organization token, which has read access to the base repo (usually flutter/flutter), and also has write access to the fork repo (e.g., join-the-flock/flock). Even though this step doesn't push any changes to the fork repo, GitHub won't allow any future push to the fork repo, unless the base repo is originally checked out with that token. Therefore, the token must be used up front at this stage during initial checkout and assembly."
-    default: ${{ github.token }}
-
-  fetch_depth:
-    description: "The git fetch depth used when checking out the base repo (typically Flutter). This action walks the engine history to select an engine hash. When the fetch depth is zero, that history walking should always work. If the fetch depth is 1+, it's possible that an unexpected engine hash is selected. Use at own discretion."
+    default: fork
+    description: SDK checkout path relative to the workflow workspace
+  patches_path:
     required: false
-    default: 0
-
-  patches_ref:
-    required: true
-    description: "the ref of the branch or ref to use for patching flutter"
-    default: main
-
+    default: patches
+    description: Patch checkout path relative to the workflow workspace
   patches_repo:
+    required: true
+    description: GitHub repository containing the fork's patches
+  patches_ref:
     required: false
-    description: "the repo to use for patches"
-    default: join-the-flock/flock-patches
-
+    default: main
+    description: Patch repository branch, tag, or revision
   patches_manifest:
     required: false
-    description: "Manifest filename in the patch repository selecting the ordered patch collection"
     default: .patches
+    description: Manifest selecting the ordered patch collection
+  git_user_name:
+    required: true
+    description: Git author and committer name for assembly commits
+  git_user_email:
+    required: true
+    description: Git author and committer email for assembly commits
+  token:
+    required: false
+    default: ${{ github.token }}
+    description: Token with checkout access and destination write access if publishing later
+  fetch_depth:
+    required: false
+    default: '0'
+    description: Upstream checkout depth; full history supports engine hash selection
 
 runs:
-  using: "composite"
+  using: composite
   steps:
     - name: Resolve Nest tooling dependencies
       shell: bash
@@ -48,76 +55,59 @@ runs:
       working-directory: ${{ github.action_path }}/../../../nest_patches
       run: dart pub get --enforce-lockfile
 
-    - name: checkout base flutter ref
+    - name: Check out upstream Flutter
       uses: actions/checkout@v4
       with:
-        path: 'flock'
-        fetch-depth: ${{inputs.fetch_depth}}
-        repository: ${{inputs.flutter_repo}}
-        ref: '${{inputs.flutter_ref}}'
-        token: ${{ inputs.token }}
-    
-    - name: checkout patches ref
-      uses: actions/checkout@v4
-      with:
-        path: 'patches'
-        repository: ${{inputs.patches_repo}}
-        ref: '${{inputs.patches_ref}}'
+        path: ${{ inputs.fork_path }}
+        fetch-depth: ${{ inputs.fetch_depth }}
+        repository: ${{ inputs.flutter_repo }}
+        ref: ${{ inputs.flutter_ref }}
         token: ${{ inputs.token }}
 
-    # Compute an engine version hash so the flutter tool will be able to find a precompiled engine
-    - name: save engine hash
+    - name: Check out fork patches
+      uses: actions/checkout@v4
+      with:
+        path: ${{ inputs.patches_path }}
+        repository: ${{ inputs.patches_repo }}
+        ref: ${{ inputs.patches_ref }}
+        token: ${{ inputs.token }}
+
+    - name: Save engine hash
       shell: bash
-      run: |
-        cd ./flock
-        ./bin/internal/update_engine_version.sh
-        cp ./bin/cache/engine.stamp ./bin/internal/engine.version
-      
-        git add -f ./bin/internal/engine.version
-        git config --global user.email "join-the-flock@users.noreply.github.com"
-        git config --global user.name "join-the-flock"
-        git commit -m "save engine version" --allow-empty
-    
-    - name: Apply Flock patches on top of Flutter
-      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.fork_path }}
       env:
-        PATCHES_MANIFEST: ${{ inputs.patches_manifest }}
+        GIT_USER_NAME: ${{ inputs.git_user_name }}
+        GIT_USER_EMAIL: ${{ inputs.git_user_email }}
       run: |
         set -euo pipefail
+        git config user.name "$GIT_USER_NAME"
+        git config user.email "$GIT_USER_EMAIL"
+        ./bin/internal/update_engine_version.sh
+        cp ./bin/cache/engine.stamp ./bin/internal/engine.version
+        git add -f ./bin/internal/engine.version
+        git commit -m "save engine version" --allow-empty
 
-        if ! dart run nest_patches/bin/git_import_patches.dart -p patches --manifest "$PATCHES_MANIFEST" -3 2> patch_fail.log; then
-          echo "::error::git_import_patches.dart failed. Showing conflicts and context…"
-    
-          echo "::group::Last 200 lines of git_import_patches.dart stderr"
-          tail -n 200 patch_fail.log || true
+    - name: Apply fork patches
+      shell: bash
+      env:
+        FORK_PATH: ${{ github.workspace }}/${{ inputs.fork_path }}
+        PATCHES_PATH: ${{ github.workspace }}/${{ inputs.patches_path }}
+        PATCHES_MANIFEST: ${{ inputs.patches_manifest }}
+        PATCH_LOG: ${{ github.workspace }}/patch_fail.log
+        PATCH_TOOL: ${{ github.action_path }}/../../../nest_patches/bin/git_import_patches.dart
+      run: |
+        set -euo pipefail
+        if ! dart run "$PATCH_TOOL" --flutter "$FORK_PATH" -p "$PATCHES_PATH" --manifest "$PATCHES_MANIFEST" -3 2> "$PATCH_LOG"; then
+          echo "::error::Patch import failed. Showing conflicts and context…"
+          echo "::group::Last 200 lines of patch import stderr"
+          tail -n 200 "$PATCH_LOG" || true
           echo "::endgroup::"
-    
-          echo "::group::Git status (flock)"
-          (cd flock && git status --porcelain=v1 && echo && git diff --name-only --diff-filter=U || true)
+          echo "::group::Git status (fork checkout)"
+          git -C "$FORK_PATH" status --porcelain=v1 || true
+          git -C "$FORK_PATH" diff --name-only --diff-filter=U || true
           echo "::endgroup::"
-    
-          echo "::group::Conflicts with full context (flock)"
-          (
-            cd flock || exit 0
-            files="$(git diff --name-only --diff-filter=U || true)"
-            if [ -n "$files" ]; then
-              for f in $files; do
-                echo "--- $f ---"
-                # Print the full conflict blocks with content
-                awk '
-                  BEGIN { inconflict=0 }
-                  /^<<<<<<< / { inconflict=1; print "----- conflict start (" FILENAME ":" NR ") -----"; print; next }
-                  /^>>>>>>> / { print; print "----- conflict end (" FILENAME ":" NR ") -----"; inconflict=0; next }
-                  inconflict { print }
-                ' "$f" || true
-              done
-            else
-              # Fallback: grep recursively and show context if git didn't detect
-              grep -R -n -C3 -E "^(<<<<<<<|=======|>>>>>>>)" . || true
-            fi
-          )
+          echo "::group::Conflict details"
+          git -C "$FORK_PATH" diff --cc || true
           echo "::endgroup::"
-    
           exit 1
         fi
-

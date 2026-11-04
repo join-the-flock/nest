@@ -5,7 +5,7 @@ on:
     paths:
       - 'tools/**'
       - 'nest_patches/**'
-      - '.github/actions/assemble-fork/action.yaml'
+      - '.github/actions/**'
       - 'test/**'
       - 'pubspec.yaml'
       - 'pubspec.lock'
@@ -18,7 +18,7 @@ on:
     paths:
       - 'tools/**'
       - 'nest_patches/**'
-      - '.github/actions/assemble-fork/action.yaml'
+      - '.github/actions/**'
       - 'test/**'
       - 'pubspec.yaml'
       - 'pubspec.lock'
