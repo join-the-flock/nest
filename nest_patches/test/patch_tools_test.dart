@@ -11,7 +11,7 @@ void main() {
     late String base;
 
     setUp(() async {
-      root = Directory.systemTemp.createTempSync('nest patch tools-');
+      root = Directory.systemTemp.createTempSync('nest-patch-tools-');
       source = Directory('${root.path}/source')..createSync();
       collection = Directory('${root.path}/patches')..createSync();
       await _initialize(source);
@@ -32,6 +32,23 @@ void main() {
     tearDown(() => root.deleteSync(recursive: true));
 
     group('Patch contents and Git behavior >', () {
+      test('round-trips repository and patch paths containing spaces',
+          () async {
+        final spacedRoot = Directory('${root.path}/paths with spaces')
+          ..createSync();
+        source = source.renameSync('${spacedRoot.path}/source repository');
+        collection = Directory('${spacedRoot.path}/patch collection')
+          ..createSync();
+        await _expectSuccess(
+            await _export(source, collection, ['--channel', 'master']));
+        final target = await _baseCheckout(spacedRoot, source, base);
+        await _expectSuccess(
+            await _import(target, collection, ['--channel', 'master']));
+        expect(
+            File('${target.path}/feature.txt').readAsStringSync(), 'feature\n');
+        await _expectRoundTrip(target, collection, spacedRoot, 'feature.patch');
+      });
+
       test('round-trips edits, deletes, renames, modes, and symlinks',
           () async {
         await _git(source, ['reset', '--hard', base]);
