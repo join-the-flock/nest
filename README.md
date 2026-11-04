@@ -81,6 +81,11 @@ distribution, and flock-demo branches remain channel-specific.
 The assembly action installs Dart and resolves Nest dependencies before applying
 patches, including when called from engine-build workflows.
 
+For complete file ownership, add a `Patch-Replace-File: <path>` trailer to the
+commit. Export emits the file as an unconditional replacement; import remembers
+that choice for later exports. See the
+[package README](nest_patches/README.md#replacing-complete-files) for details.
+
 ## Validation before daily publication
 
 `tools/flock_publication_preflight_checks.dart` belongs to Nest. The daily rebase workflow runs it from

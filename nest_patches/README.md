@@ -4,8 +4,8 @@ Dart tools for importing, exporting, and managing ordered collections of Git mai
 patches. Requires Git and a standalone Dart SDK satisfying `pubspec.yaml`.
 
 The package owns patch collection validation, channel manifests, commit metadata,
-and Git import/export. It currently uses standard Git patch syntax; custom
-replacement syntax has not been added.
+and Git import/export. It supports standard Git patches and unconditional file
+replacements.
 
 ## Commands
 
@@ -23,6 +23,13 @@ not. From the Nest directory, invoke these entry points with
 `dart run nest_patches/bin/git_import_patches.dart` or
 `dart run nest_patches/bin/git_export_patches.dart`. Relative repository and patch
 paths are resolved from the current working directory.
+
+## Replacing complete files
+
+Add a `Patch-Replace-File: README.md` trailer to the commit that should own the
+entire file. Export emits its complete contents with a `replace file mode`
+header. Import replaces the file regardless of upstream contents and preserves
+the intent for re-export. Repeat the trailer for multiple paths.
 
 ## Library
 
