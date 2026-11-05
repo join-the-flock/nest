@@ -11,7 +11,11 @@ void main() {
     });
     tearDown(() => root.deleteSync(recursive: true));
 
-    for (final command in ['git_import_patches', 'git_export_patches']) {
+    for (final command in [
+      'git_import_patches',
+      'git_export_patches',
+      'git_repair_patches'
+    ]) {
       test('$command runs from another directory', () async {
         final result = await _command(command, ['--help'], root);
         expect(result.exitCode, 0, reason: '${result.stderr}');

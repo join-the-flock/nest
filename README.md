@@ -66,9 +66,30 @@ Flutter's upstream revision. See the
 [package reset instructions](nest_patches/README.md#resetting-an-existing-assembly)
 for requirements and recovery commands.
 
-Both commands accept `--flutter /path/to/sdk` to select a different Flutter
+When newer Flutter changes conflict with a patch, use the in-place repair command:
+
+```sh
+git -C flock fetch origin
+dart run nest_patches/bin/git_repair_patches.dart \
+  --flutter flock --patches-dir patches --channel master
+```
+
+Resolve conflicts in the existing fork directory and use `--continue`. After
+testing the repaired fork, use the normal export command to verify direct replay
+and write channel adaptations together with any new development commits:
+
+```sh
+dart run nest_patches/bin/git_export_patches.dart \
+  --flutter flock --patches-dir patches --channel master
+```
+
+Use repair's `--abort` to restore the starting history. See the
+[repair instructions](nest_patches/README.md#repairing-patches-after-upstream-changes).
+
+Import and export accept `--flutter /path/to/sdk` to select a different Flutter
 checkout, and `--manifest .patches-stable` is equivalent to `--channel stable`.
-Channel collections require an explicit selection. Legacy repositories with only
+Channel collections require an explicit selection outside an active repair.
+Legacy repositories with only
 `.patches` continue working without either option. Import records the included
 upstream revision at `refs/patches/upstream-head` for subsequent exports.
 

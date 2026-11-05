@@ -19,7 +19,7 @@ dart run bin/git_export_patches.dart -f /path/to/repository -p /path/to/patches 
 
 Use `--help` for options. Collections containing channel manifests require an
 explicit `--channel` or `--manifest` selection. Legacy `.patches` collections do
-not. From the Nest directory, invoke these entry points with
+not. Export can infer the selection from a completed repair session. From the Nest directory, invoke these entry points with
 `dart run nest_patches/bin/git_import_patches.dart` or
 `dart run nest_patches/bin/git_export_patches.dart`. Relative repository and patch
 paths are resolved from the current working directory.
@@ -71,6 +71,88 @@ Add a `Patch-Replace-File: README.md` trailer to the commit that should own the
 entire file. Export emits its complete contents with a `replace file mode`
 header. Import replaces the file regardless of upstream contents and preserves
 the intent for re-export. Repeat the trailer for multiple paths.
+
+## Repairing patches after upstream changes
+
+Repair operates in the existing fork directory and on its current branch. Export
+any changes you want to keep in the collection first. The checkout must have no
+staged, unstaged, or untracked work. Fetch the upstream revision explicitly, then
+start repair from Nest:
+
+```sh
+git -C flock fetch origin
+dart run nest_patches/bin/git_repair_patches.dart \
+  --flutter flock --patches-dir patches --channel master
+```
+
+The channel selects both `.patches-<channel>` and the fetched
+`origin/<channel>` branch. The command prints the resolved upstream commit, saves
+the starting commit under a backup reference, moves the current branch to that
+upstream commit, and replays patches in order. The target stays pinned for the
+session even if the remote-tracking branch changes later.
+Before moving history, it reconstructs the old patch preimages using the recorded
+upstream base and an isolated Git index. If necessary, supply
+`--base <last-working-upstream-commit>`. No extra working directory or branch is
+created, and no upstream revision is fetched implicitly.
+
+When a patch conflicts, edit the files in `flock/`, then run:
+
+```sh
+dart run nest_patches/bin/git_repair_patches.dart --continue
+```
+
+Continue remembers the collection, manifest, target commit, and remaining patches.
+It stages tracked resolution edits and the patch's added files, preserves author
+and description metadata, and resumes application. Repeat for further conflicts.
+Complete file replacements retain their unconditional behavior.
+
+After all patches apply, you can add development commits on top of the repaired
+history. Run the relevant tests on the fork, then use the normal export command:
+
+```sh
+dart run nest_patches/bin/git_export_patches.dart \
+  --flutter flock --patches-dir patches --channel master
+```
+
+Export first verifies that the candidate collection applies directly from the
+target upstream tree, with three-way merging disabled, and produces exactly the
+current tree, including the additional commits. It writes dated adaptations for
+patches that needed three-way merging, updates only the selected manifest, and
+preserves variants used by other channels. Commit filename metadata is updated
+too, so later exports remember the
+adaptation. New development commits become ordinary patches, appended to the
+selected manifest; their filenames are derived from their subjects or explicit
+`Patch-Filename` metadata. File replacement intent is preserved in both repaired
+and new patches. Export may recreate commits to update filename metadata and
+parent references; it retains their authors, dates, and contents. If resolving a
+conflict keeps the upstream contents with no remaining change, that mail is
+skipped; a wholly obsolete patch is removed from the selected manifest while
+other channels retain their version. The default date is the
+target commit's UTC committer date; use
+`--adaptation-date YYYY-MM-DD` when starting repair to specify the date of the
+upstream change that required the adaptation. Concurrent collection edits cause
+export to refuse without overwriting them. Review the resulting collection diff
+and run CI across channels before merging.
+
+Export recognizes the session automatically and can infer its channel when
+`--channel` is omitted. An explicit channel or manifest and the collection path
+must match the repair session. Partial exports using a range or `--grep` are
+refused while repair is active, so the complete collection can be verified.
+`--dry-run` reports pending changes without rewriting commits, writing patches,
+or closing the session. A successful export closes the repair session. The repair
+command's `--export` remains an alias for this complete export.
+
+To abandon a repair, including uncommitted resolution edits:
+
+```sh
+dart run nest_patches/bin/git_repair_patches.dart --abort
+```
+
+Abort restores the starting commit and recorded upstream base on the same branch.
+Ignored SDK caches remain. Session state lives in the checkout's Git directory;
+use the same `--flutter` path on subsequent commands if it differs from `flock/`.
+Repair blocks ordinary import/reset until the session is exported or aborted.
+Reset's existing rollback-on-failure behavior is unchanged.
 
 ## Library
 
