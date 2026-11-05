@@ -13,15 +13,27 @@ void main() {
   group('Reusable fork action contracts >', () {
     for (final name in actions) {
       test(
-          '$name has no Flock or caller-matrix assumptions and declares its inputs',
+          '$name has no fork-specific runtime assumptions and declares its inputs',
           () async {
         final file = File('.github/actions/$name/action.yaml');
         final text = file.readAsStringSync();
         final action = _action(name);
         final inputs = action['inputs'] as YamlMap;
-        expect(
-            text, isNot(matches(RegExp(r'\bflock\b', caseSensitive: false))));
-        expect(text, isNot(contains('matrix.')));
+        // Documentation can mention particular forks as examples. Check the
+        // executable configuration and defaults, rather than prose or comments.
+        final configuration = {
+          'inputs': {
+            for (final entry in inputs.entries)
+              entry.key: {
+                for (final field in (entry.value as YamlMap).entries)
+                  if (field.key != 'description') field.key: field.value,
+              },
+          },
+          'runs': action['runs'],
+        }.toString();
+        expect(configuration,
+            isNot(matches(RegExp(r'\bflock\b', caseSensitive: false))));
+        expect(configuration, isNot(contains('matrix.')));
         for (final reference in RegExp(r'inputs\.([a-z_]+)').allMatches(text)) {
           expect(inputs.containsKey(reference[1]), isTrue,
               reason: reference[0]);
