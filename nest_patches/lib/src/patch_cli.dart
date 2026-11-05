@@ -23,8 +23,12 @@ Future<void> runPatchTool(List<String> arguments,
         help: 'Select .patches or an explicit channel manifest')
     ..addFlag('help', abbr: 'h', negatable: false);
   if (importing) {
-    parser.addFlag('3way',
-        abbr: '3', negatable: false, help: 'Use three-way merging');
+    parser
+      ..addFlag('3way',
+          abbr: '3', negatable: false, help: 'Use three-way merging')
+      ..addFlag('reset',
+          negatable: false,
+          help: 'Back up HEAD and rebuild from the recorded upstream base');
   } else {
     parser
       ..addOption('grep',
@@ -56,7 +60,8 @@ Future<void> runPatchTool(List<String> arguments,
       final selection = resolveManifest(directory, manifest);
       // Read and validate all inputs before recording the upstream revision.
       final data = readPatchCollection(directory, selection);
-      await importPatches(repository, data, threeway: args['3way'] as bool);
+      await importPatches(repository, data,
+          threeway: args['3way'] as bool, reset: args['reset'] as bool);
     } else {
       await exportPatches(repository, directory,
           patchRange: args.rest.isEmpty ? null : args.rest.single,

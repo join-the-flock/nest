@@ -23,6 +23,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import 'patch_collection.dart';
 import 'patch_protocol.dart';
 
@@ -40,8 +42,15 @@ Future<String> git(String repository, List<String> arguments,
 }
 
 Future<void> importPatches(String repository, String patchData,
-    {bool threeway = false}) async {
+    {bool threeway = false, bool reset = false}) async {
   final mails = splitPatches(patchData).map(PatchMail.parse).toList();
+  if (mails.isEmpty)
+    throw FormatException('The patch collection contains no mail patches');
+  final head =
+      (await git(repository, ['rev-parse', '--verify', 'HEAD^{commit}']))
+          .trim();
+  final recorded = await _recordedUpstream(repository);
+  await _checkImportHistory(repository, head, recorded, reset: reset);
   for (final mail in mails) {
     if (mail.replacementPaths.isNotEmpty) {
       throw FormatException(
@@ -50,11 +59,59 @@ Future<void> importPatches(String repository, String patchData,
   }
   final extended = mails
       .any((mail) => mail.files.any((file) => file.replacementMode != null));
-  if (extended) {
-    patchData =
-        await _prepareReplacements(repository, mails, threeway: threeway);
+  final base = reset ? recorded! : head;
+  final destinations = <String>{};
+  if (reset) await _validateResetPatches(repository, mails, destinations);
+  String? backup;
+  if (reset) {
+    await _checkIgnoredCollisions(repository, head, base, destinations);
+    // Recheck immediately before changing history, after input validation.
+    if ((await git(repository, ['rev-parse', 'HEAD'])).trim() != head) {
+      throw FormatException('HEAD changed during validation; retry the import');
+    }
+    await _requireCleanReset(repository);
+    await git(repository, ['var', 'GIT_COMMITTER_IDENT']);
+    backup =
+        'refs/patches/backups/${DateTime.now().toUtc().microsecondsSinceEpoch}-$head';
+    await git(repository, ['update-ref', backup, head, '0' * head.length]);
+    stdout.writeln('Saved previous HEAD at $backup');
+    await git(repository, ['reset', '--hard', base]);
   }
-  await git(repository, ['update-ref', upstreamHead, 'HEAD']);
+  try {
+    if (extended) {
+      patchData =
+          await _prepareReplacements(repository, mails, threeway: threeway);
+    }
+    await git(repository, ['update-ref', upstreamHead, base]);
+    await _applyMail(repository, patchData,
+        threeway: threeway,
+        keepEmpty: extended,
+        preserveWhitespace: extended || reset);
+  } catch (error) {
+    if (!reset) rethrow;
+    try {
+      await _restoreImportBase(repository, base);
+    } catch (cleanup) {
+      throw ProcessException(
+          'git',
+          ['am'],
+          'Patch import failed: $error\nCould not restore the upstream base: $cleanup\n'
+              'The previous history is saved at $backup',
+          1);
+    }
+    throw ProcessException(
+        'git',
+        ['am'],
+        'Patch import failed. Restored checkout to recorded upstream base $base; '
+            'no patches remain applied.\nThe previous history is saved at $backup\n$error',
+        1);
+  }
+}
+
+Future<void> _applyMail(String repository, String patchData,
+    {required bool threeway,
+    required bool keepEmpty,
+    required bool preserveWhitespace}) async {
   final arguments = [
     '-C',
     repository,
@@ -62,20 +119,234 @@ Future<void> importPatches(String repository, String patchData,
     'commit.gpgsign=false',
     'am',
     if (threeway) '--3way',
-    if (extended) '--empty=keep',
-    if (extended) '--whitespace=nowarn',
+    if (keepEmpty) '--empty=keep',
+    if (preserveWhitespace) '--whitespace=nowarn',
     '--keep-cr'
   ];
   final process = await Process.start('git', arguments);
   final output = stdout.addStream(process.stdout);
   final errors = stderr.addStream(process.stderr);
-  process.stdin.add(utf8.encode(patchData));
-  await process.stdin.close();
+  IOException? inputError;
+  try {
+    process.stdin.add(utf8.encode(patchData));
+    await process.stdin.close();
+  } on IOException catch (error) {
+    inputError = error;
+  }
   final code = await process.exitCode;
   await Future.wait([output, errors]);
-  if (code != 0) {
+  if (code != 0)
     throw ProcessException('git', arguments, 'Patch import failed', code);
+  if (inputError != null) throw inputError;
+}
+
+Future<void> _restoreImportBase(String repository, String base) async {
+  final path =
+      (await git(repository, ['rev-parse', '--git-path', 'rebase-apply']))
+          .trim();
+  if (Directory(p.isAbsolute(path) ? path : p.join(repository, path))
+      .existsSync()) {
+    try {
+      await git(repository, ['am', '--abort']);
+    } on ProcessException {
+      // If abort cannot restore its starting state, clear its bookkeeping and
+      // explicitly restore the base selected before this reset/import attempt.
+      await git(repository, ['am', '--quit']);
+    }
   }
+  await git(repository, ['reset', '--hard', base]);
+}
+
+Future<void> _validateResetPatches(
+    String repository, List<PatchMail> mails, Set<String> destinations) async {
+  final temporary =
+      Directory.systemTemp.createTempSync('nest-import-validation-');
+  try {
+    final patch = File('${temporary.path}/patch');
+    for (final mail in mails) {
+      await _validateMail(repository, mail, temporary);
+      await _inspectMailFiles(repository, mail, patch,
+          destinations: destinations);
+    }
+  } finally {
+    temporary.deleteSync(recursive: true);
+  }
+}
+
+/// Never infer an upstream base from a branch name or a fetched remote ref.
+Future<String?> _recordedUpstream(String repository) async {
+  final exists = await Process.run('git',
+      ['-C', repository, 'show-ref', '--verify', '--quiet', upstreamHead]);
+  if (exists.exitCode == 1) return null;
+  if (exists.exitCode != 0) {
+    throw FormatException(
+        'Cannot read recorded upstream $upstreamHead: ${exists.stderr}');
+  }
+  try {
+    return (await git(
+            repository, ['rev-parse', '--verify', '$upstreamHead^{commit}']))
+        .trim();
+  } on ProcessException {
+    throw FormatException(
+        'Recorded upstream $upstreamHead must point to a commit');
+  }
+}
+
+Future<void> _checkImportHistory(
+    String repository, String head, String? recorded,
+    {required bool reset}) async {
+  for (final operation in [
+    'rebase-apply',
+    'rebase-merge',
+    'MERGE_HEAD',
+    'CHERRY_PICK_HEAD',
+    'REVERT_HEAD',
+    'sequencer'
+  ]) {
+    final path =
+        (await git(repository, ['rev-parse', '--git-path', operation])).trim();
+    if (FileSystemEntity.typeSync(
+            p.isAbsolute(path) ? path : p.join(repository, path)) !=
+        FileSystemEntityType.notFound) {
+      throw FormatException(
+          'A Git operation is in progress ($operation). Complete or abort it before importing patches');
+    }
+  }
+  if (reset) {
+    if (recorded == null) {
+      throw FormatException(
+          'Cannot --reset without a recorded upstream base ($upstreamHead). '
+          'Start with a fresh upstream checkout and import once; no base will be guessed');
+    }
+    final ancestor = await Process.run('git',
+        ['-C', repository, 'merge-base', '--is-ancestor', recorded, head]);
+    if (ancestor.exitCode != 0) {
+      throw FormatException(
+          'Recorded upstream is not an ancestor of HEAD; refusing to reset an unrelated history');
+    }
+    await _requireCleanReset(repository);
+  } else if (recorded != null && head != recorded) {
+    throw FormatException(
+        'HEAD differs from the recorded upstream base. Normal import requires a fresh checkout at that base. '
+        'Export changes you want to retain, then use --reset to rebuild from $recorded. '
+        'For a different upstream revision, start with a fresh upstream checkout');
+  }
+  // Published forks can retain commit metadata while losing private refs.
+  final imported = (await git(repository, [
+    'log',
+    '-1',
+    '--format=%H',
+    '--extended-regexp',
+    '--grep=^(Patch-Filename: |Patch-Dir: |Patch-Replace-File:)',
+    reset ? recorded! : head
+  ]))
+      .trim();
+  if (imported.isNotEmpty) {
+    throw FormatException(reset
+        ? 'The recorded upstream base contains imported patch metadata; refusing to use an assembled history as upstream'
+        : 'Imported patch history detected. Export changes first and use --reset if the recorded upstream base is available; '
+            'otherwise start from a fresh upstream checkout');
+  }
+}
+
+Future<void> _requireCleanReset(String repository) async {
+  final status = await git(repository, [
+    'status',
+    '--porcelain=v1',
+    '--untracked-files=all',
+    '--ignore-submodules=none'
+  ]);
+  if (status.isNotEmpty) {
+    throw FormatException(
+        'Cannot --reset with uncommitted changes or untracked files. '
+        'Commit, export, or move them first; no files have been cleaned');
+  }
+}
+
+Future<void> _checkIgnoredCollisions(String repository, String head,
+    String base, Set<String> destinations) async {
+  final ignored = (await git(repository,
+          ['ls-files', '--others', '--ignored', '--exclude-standard', '-z']))
+      .split('\x00')
+      .where((path) => path.isNotEmpty)
+      // Git reports ignored nested repositories as directory entries.
+      .map((path) =>
+          path.endsWith('/') ? path.substring(0, path.length - 1) : path)
+      .toSet();
+  if (ignored.isEmpty) return;
+  final ignoredDirectories = <String>{};
+  for (final path in ignored) {
+    var directory = p.posix.dirname(path);
+    while (directory != '.') {
+      ignoredDirectories.add(directory);
+      directory = p.posix.dirname(directory);
+    }
+  }
+  final restored = (await git(repository, [
+    'diff-tree',
+    '--no-commit-id',
+    '--no-renames',
+    '--name-only',
+    '-r',
+    '--diff-filter=AT',
+    '-z',
+    head,
+    base
+  ]))
+      .split('\x00')
+      .where((path) => path.isNotEmpty);
+  for (final path in {...destinations, ...restored}) {
+    var parent = path;
+    var collision = ignoredDirectories.contains(path);
+    while (parent != '.') {
+      collision = collision || ignored.contains(parent);
+      parent = p.posix.dirname(parent);
+    }
+    if (collision) {
+      throw FormatException(
+          'Ignored local files would be overwritten at $path. Move them before using --reset');
+    }
+  }
+}
+
+Future<void> _validateMail(
+    String repository, PatchMail mail, Directory temporary) async {
+  if (mail.files.isEmpty)
+    throw FormatException('A reset patch must contain file diffs');
+  final process = await Process.start('git', [
+    '-C',
+    repository,
+    'mailinfo',
+    '${temporary.path}/message',
+    '${temporary.path}/diff'
+  ]);
+  final output = process.stdout.transform(utf8.decoder).join();
+  final errors = process.stderr.transform(utf8.decoder).join();
+  process.stdin.write(
+      [...mail.message, for (final file in mail.files) file.gitDiff].join());
+  await process.stdin.close();
+  final code = await process.exitCode;
+  final metadata = await output;
+  final diagnostics = await errors;
+  if (code != 0) throw FormatException('Invalid patch mail: $diagnostics');
+  final fields = <String, String>{};
+  for (final line in const LineSplitter().convert(metadata)) {
+    final separator = line.indexOf(': ');
+    if (separator > 0)
+      fields[line.substring(0, separator)] = line.substring(separator + 2);
+  }
+  if ((fields['Author'] ?? '').isEmpty || (fields['Email'] ?? '').isEmpty) {
+    throw FormatException(
+        'Patch mail must contain a usable author name and email');
+  }
+  await git(repository, [
+    'var',
+    'GIT_AUTHOR_IDENT'
+  ], environment: {
+    'GIT_AUTHOR_NAME': fields['Author']!,
+    'GIT_AUTHOR_EMAIL': fields['Email']!,
+    if (fields['Date']?.isNotEmpty == true) 'GIT_AUTHOR_DATE': fields['Date']!,
+  });
 }
 
 List<List<String>> splitPatches(String data) {
@@ -231,25 +502,8 @@ Future<String> _prepareReplacements(String repository, List<PatchMail> mails,
       final before =
           (await git(repository, ['write-tree'], environment: environment))
               .trim();
-      final paths = <String>[];
-      final destinations = <String>[];
-      for (final file in mail.files) {
-        patchFile.writeAsStringSync(file.gitDiff);
-        final path = await _diffDestination(repository, patchFile);
-        destinations.add(path);
-        if (file.replacementMode == null) continue;
-        validateReplacementPath(path);
-        if (paths.contains(path)) {
-          throw FormatException('Duplicate replacement file: $path');
-        }
-        paths.add(path);
-      }
+      final paths = await _inspectMailFiles(repository, mail, patchFile);
       for (final path in paths) {
-        if (destinations.where((destination) => destination == path).length !=
-            1) {
-          throw FormatException(
-              'Replacement has another diff for the same file: $path');
-        }
         await git(repository, ['update-index', '--force-remove', '--', path],
             environment: environment);
       }
@@ -276,6 +530,32 @@ Future<String> _prepareReplacements(String repository, List<PatchMail> mails,
   } finally {
     temporary.deleteSync(recursive: true);
   }
+}
+
+/// Validate file syntax and replacement declarations without testing applicability.
+Future<List<String>> _inspectMailFiles(
+    String repository, PatchMail mail, File patch,
+    {Set<String>? destinations}) async {
+  final paths = <String>[];
+  final counts = <String, int>{};
+  for (final file in mail.files) {
+    patch.writeAsStringSync(file.gitDiff);
+    final path = await _diffDestination(repository, patch);
+    counts[path] = (counts[path] ?? 0) + 1;
+    destinations?.add(path);
+    if (file.replacementMode == null) continue;
+    validateReplacementPath(path);
+    if (paths.contains(path))
+      throw FormatException('Duplicate replacement file: $path');
+    paths.add(path);
+  }
+  for (final path in paths) {
+    if (counts[path] != 1) {
+      throw FormatException(
+          'Replacement has another diff for the same file: $path');
+    }
+  }
+  return paths;
 }
 
 Future<String> _diffDestination(String repository, File patch) async {
