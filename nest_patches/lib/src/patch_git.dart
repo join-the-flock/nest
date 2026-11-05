@@ -28,6 +28,8 @@ import 'package:path/path.dart' as p;
 import 'patch_collection.dart';
 import 'patch_protocol.dart';
 
+part 'patch_repair.dart';
+
 const upstreamHead = 'refs/patches/upstream-head';
 
 Future<String> git(String repository, List<String> arguments,
@@ -111,7 +113,8 @@ Future<void> importPatches(String repository, String patchData,
 Future<void> _applyMail(String repository, String patchData,
     {required bool threeway,
     required bool keepEmpty,
-    required bool preserveWhitespace}) async {
+    required bool preserveWhitespace,
+    bool quiet = false}) async {
   final arguments = [
     '-C',
     repository,
@@ -124,8 +127,10 @@ Future<void> _applyMail(String repository, String patchData,
     '--keep-cr'
   ];
   final process = await Process.start('git', arguments);
-  final output = stdout.addStream(process.stdout);
-  final errors = stderr.addStream(process.stderr);
+  final output =
+      quiet ? process.stdout.drain<void>() : stdout.addStream(process.stdout);
+  final errors =
+      quiet ? process.stderr.drain<void>() : stderr.addStream(process.stderr);
   IOException? inputError;
   try {
     process.stdin.add(utf8.encode(patchData));
@@ -195,6 +200,10 @@ Future<String?> _recordedUpstream(String repository) async {
 Future<void> _checkImportHistory(
     String repository, String head, String? recorded,
     {required bool reset}) async {
+  if ((await _repairDirectory(repository)).existsSync()) {
+    throw FormatException(
+        'A patch repair is active; use repair --continue, --export, or --abort');
+  }
   for (final operation in [
     'rebase-apply',
     'rebase-merge',
@@ -407,6 +416,27 @@ Future<void> exportPatches(String repository, String directory,
     bool dryRun = false,
     String? grep,
     bool updateShared = false}) async {
+  if (Directory(repository).existsSync() &&
+      await _tryExportRepair(repository, directory,
+          manifest: manifest,
+          patchRange: patchRange,
+          grep: grep,
+          dryRun: dryRun,
+          updateShared: updateShared)) return;
+  await _exportPatches(repository, directory,
+      patchRange: patchRange,
+      manifest: manifest,
+      dryRun: dryRun,
+      grep: grep,
+      updateShared: updateShared);
+}
+
+Future<void> _exportPatches(String repository, String directory,
+    {String? patchRange,
+    String? manifest,
+    bool dryRun = false,
+    String? grep,
+    bool updateShared = false}) async {
   if (!Directory(repository).existsSync()) {
     stderr
         .writeln('Skipping patches in $repository because it does not exist.');
@@ -433,25 +463,7 @@ Future<void> exportPatches(String repository, String directory,
     stderr
         .writeln('Exporting $count patches in $repository since $abbreviated');
   }
-  // Match the previous tools: ignore user-level attribute overrides during export.
-  final data = await git(repository, [
-    '-c',
-    'core.attributesfile=',
-    'format-patch',
-    '--keep-subject',
-    '--no-stat',
-    '--stdout',
-    '--no-signature',
-    '--always',
-    '--full-index',
-    patchRange
-  ]);
-  // format-patch normally omits empty commits. Keep only those that carry
-  // replacement intent, since an unchanged image still needs to be exported.
-  var patches = splitPatches(data).where((patch) {
-    final mail = PatchMail.parse(patch);
-    return mail.files.isNotEmpty || mail.replacementPaths.isNotEmpty;
-  }).toList();
+  var patches = await _formatPatchSeries(repository, patchRange);
   if (grep != null && grep.isNotEmpty) {
     final total = patches.length;
     final selected = patches
@@ -488,16 +500,44 @@ Future<void> exportPatches(String repository, String directory,
       dryRun: dryRun);
 }
 
+Future<List<List<String>>> _formatPatchSeries(
+    String repository, String range) async {
+  // Match the previous tools: ignore user-level attribute overrides during export.
+  final data = await git(repository, [
+    '-c',
+    'core.attributesfile=',
+    'format-patch',
+    '--keep-subject',
+    '--no-stat',
+    '--stdout',
+    '--no-signature',
+    '--always',
+    '--full-index',
+    range
+  ]);
+  // format-patch normally omits empty commits. Keep only those that carry
+  // replacement intent, since an unchanged image still needs to be exported.
+  return splitPatches(data).where((patch) {
+    final mail = PatchMail.parse(patch);
+    return mail.files.isNotEmpty || mail.replacementPaths.isNotEmpty;
+  }).toList();
+}
+
 /// Plan the whole series using an isolated index. The checkout and real index
 /// stay untouched, and later replacements see the results of earlier commits.
 Future<String> _prepareReplacements(String repository, List<PatchMail> mails,
-    {required bool threeway}) async {
+        {required bool threeway}) async =>
+    (await _planReplacements(repository, mails, threeway: threeway)).mail;
+
+Future<({String mail, String tree})> _planReplacements(
+    String repository, List<PatchMail> mails,
+    {required bool threeway, String base = 'HEAD'}) async {
   final temporary = Directory.systemTemp.createTempSync('nest-replacements-');
   final environment = {'GIT_INDEX_FILE': '${temporary.path}/index'};
   final patchFile = File('${temporary.path}/patch');
   final result = StringBuffer();
   try {
-    await git(repository, ['read-tree', 'HEAD'], environment: environment);
+    await git(repository, ['read-tree', base], environment: environment);
     for (final mail in mails) {
       final before =
           (await git(repository, ['write-tree'], environment: environment))
@@ -526,7 +566,10 @@ Future<String> _prepareReplacements(String repository, List<PatchMail> mails,
       final diff = await git(repository, [..._treeDiffOptions, before, after]);
       result.write(mail.withDiff(diff, replacements: paths).join());
     }
-    return result.toString();
+    final tree =
+        (await git(repository, ['write-tree'], environment: environment))
+            .trim();
+    return (mail: result.toString(), tree: tree);
   } finally {
     temporary.deleteSync(recursive: true);
   }
