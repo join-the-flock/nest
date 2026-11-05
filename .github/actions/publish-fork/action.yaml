@@ -1,21 +1,28 @@
-name: 'Update Remote Flock Branch'
-description: 'Pushes the Flock repo (will force push and replace whatever is in the destination branch)'
+name: Publish Fork
+description: >-
+  Force-push an assembled checkout to the selected fork branch, replacing
+  the destination branch's history and contents.
 inputs:
+  fork_path:
+    required: true
+    description: SDK checkout path relative to the workflow workspace
   destination_repo:
     required: true
-    description: "the repo to push the flock build to"
-
+    description: Destination GitHub repository (owner/repository)
   destination_branch:
     required: true
-    description: "the branch to push the flock build to"
+    description: Destination branch whose history will be replaced
 
 runs:
-  using: "composite"
+  using: composite
   steps:
     - name: Push to destination
       shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.fork_path }}
+      env:
+        DESTINATION_REPO: ${{ inputs.destination_repo }}
+        DESTINATION_BRANCH: ${{ inputs.destination_branch }}
       run: |
-        cd flock
-        git remote add destination https://github.com/${{ inputs.destination_repo }}
-        git checkout -b flock-temp
-        git push -f destination flock-temp:${{ inputs.destination_branch}}
+        set -euo pipefail
+        git remote add destination "https://github.com/$DESTINATION_REPO"
+        git push --force destination "HEAD:refs/heads/$DESTINATION_BRANCH"

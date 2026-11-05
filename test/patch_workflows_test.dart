@@ -82,22 +82,21 @@ void main() {
 
     test('engine builds select an official Flutter channel', () {
       final environment =
-          _workflow('build-and-upload-flock-engine-variants.yaml')['env'] as YamlMap;
+          _workflow('build-and-upload-flock-engine-variants.yaml')['env']
+              as YamlMap;
       expect(['master', 'beta', 'stable'],
           contains(environment['FLUTTER_BRANCH']));
     });
 
     test('CI checks PRs and main pushes without duplicate feature-branch runs',
         () {
-      final events =
-          _workflow('test-nest-tools.yaml')['on'] as YamlMap;
+      final events = _workflow('test-nest-tools.yaml')['on'] as YamlMap;
       expect((events['push'] as YamlMap)['branches'], ['main']);
       expect((events['pull_request'] as YamlMap)['branches'], isNull);
     });
 
     test('CI runs these tests when any assembly caller changes', () {
-      final events =
-          _workflow('test-nest-tools.yaml')['on'] as YamlMap;
+      final events = _workflow('test-nest-tools.yaml')['on'] as YamlMap;
       for (final event in ['pull_request', 'push']) {
         final paths = (events[event] as YamlMap)['paths'] as YamlList;
         expect(paths, containsAll(['nest_patches/**', 'tools/**']));
@@ -135,8 +134,8 @@ void main() {
               'Dart setup belongs in the calling workflow so its matcher resolves correctly');
       final dependencies = steps.indexWhere(
           (step) => step['run'] == 'dart pub get --enforce-lockfile');
-      final apply = steps.indexWhere((step) => '${step['run']}'
-          .contains('dart run nest_patches/bin/git_import_patches.dart -p'));
+      final apply = steps.indexWhere((step) =>
+          '${step['run']}'.contains(r'dart run "$PATCH_TOOL" --flutter'));
       expect(dependencies, greaterThanOrEqualTo(0));
       expect(apply, greaterThan(dependencies));
       expect(steps[dependencies]['working-directory'],

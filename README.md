@@ -73,11 +73,10 @@ needed. Review the resulting diff and validate every affected channel before
 committing.
 
 The assembly action accepts the same selection through `patches_manifest`,
-which defaults to `.patches` for existing callers. For the new layout, callers
-must select patch repository ref `main` and the matching `.patches-<channel>`
-manifest. Daily release and engine-build workflows use this selection: patch
-repository `main`, with the manifest matching the Flutter channel. Flutter, Flock
-distribution, and flock-demo branches remain channel-specific.
+which defaults to `.patches`. Flock's daily release and engine-build workflows
+select patch repository ref `main` and the matching `.patches-<channel>` manifest.
+Other forks can choose their own patch repository ref and manifest. Flutter,
+Flock distribution, and flock-demo branches remain channel-specific.
 Daily release and engine-build workflows install Dart before invoking the
 assembly action, keeping analyzer annotations enabled. The assembly action
 resolves Nest and patch-package dependencies before applying patches. Custom
@@ -87,6 +86,60 @@ For complete file ownership, add a `Patch-Replace-File: <path>` trailer to the
 commit. Export emits the file as an unconditional replacement; import remembers
 that choice for later exports. See the
 [package README](nest_patches/README.md#replacing-complete-files) for details.
+
+## Reusable fork actions
+
+Nest's shared actions accept fork-specific settings from their callers:
+
+| Action | Inputs to configure |
+| --- | --- |
+| `assemble-fork` | Required: `fork_path`, `flutter_ref`, `patches_repo`, `git_user_name`, `git_user_email`. Optional: `flutter_repo` (defaults to `flutter/flutter`), `patches_path` (`patches`), `patches_ref` (`main`), `patches_manifest` (`.patches`), `fetch_depth` (`0`), and `token` (the workflow token). |
+| `build-and-upload-engine` | Required: `fork_path`, `gclient`, `config_name`, `engine_version`. Optional: `gcp_bucket`, and base64-encoded `gcp_credentials`. An empty bucket builds without uploading. |
+| `publish-fork` | Required: `fork_path`, `destination_repo`, and `destination_branch`. It force-pushes the selected checkout's HEAD to the destination branch. |
+| `run-framework-tests` | Required: `flutter_path`, an absolute SDK path or a path relative to the workflow workspace. Tests invoke that SDK directly. |
+
+Action definitions live under `.github/actions/<action>/action.yaml`. Paths for
+`fork_path` and `patches_path` are relative to the workflow workspace. Every
+caller must explicitly supply `fork_path`; it has no default. Use
+separate checkout directories and pass the same `fork_path` to assembly, engine
+builds, and publication. Git identity is configured only in the assembled
+checkout, not globally. Assembly preserves import diagnostics in the workflow
+workspace's `patch_fail.log`.
+
+Assembly requires standalone Dart to be installed by the calling workflow. It
+resolves its own Nest and patch-package dependencies. Select an appropriate
+checkout token during assembly if the resulting checkout will later publish to
+another repository. Engine builds read the named `.gclient` file from the SDK's
+`engine/scripts/` directory and upload into the standard Flutter engine artifact
+layout within the supplied GCS bucket. Linux disk cleanup uses the runner OS;
+it does not require the caller to define a particular matrix.
+
+## Daily rebase and publication for your fork
+
+[`daily-flock-rebase.yaml`](.github/workflows/daily-flock-rebase.yaml) is Flock's
+publication workflow. Use it as an example when creating your own workflow in a
+clone of Nest:
+
+1. Copy it to a filename identifying your fork and change its workflow name,
+   schedule, channel matrix, and concurrency group.
+2. Keep workflow-level Dart setup before `assemble-fork`. Set your upstream
+   repository/ref, patch repository/ref/manifest, checkout paths, and Git identity
+   in the assembly inputs.
+3. Replace Flock's demo checkout and validation steps with checks for your fork.
+   Validate with the newly assembled SDK. Use separate report and artifact names
+   for each channel, and keep publication after successful validation.
+4. Set `publish-fork`'s destination repository, destination branch, and SDK path.
+   Configure checkout/publication credentials with access to your repositories.
+   If you retain the example's variable names, set `FLOCK_REPO`,
+   `FLOCK_PATCHES_REPO`, and the `REPO_WORKFLOW_PAT` secret in your Nest repository.
+5. Commit your configured workflow to the repository's default branch, run it
+   manually first, and enable its schedule when ready. Publication replaces the
+   destination branch's history; maintain your changes in the patch collection.
+
+The [`build-and-upload-flock-engine-variants.yaml`](.github/workflows/build-and-upload-flock-engine-variants.yaml)
+workflow likewise contains Flock's platform matrix, storage settings, packaging,
+and publication choices. Adapt it for your own engine pipeline, using the shared
+`build-and-upload-engine` action for each engine configuration.
 
 ## Validation before daily publication
 

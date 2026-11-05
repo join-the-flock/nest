@@ -1,27 +1,34 @@
-name: 'Run Framework Tests'
-description: 'Runs the Flutter Framework Tests'
+name: Run Framework Tests
+description: Run the Flutter framework tests using the selected SDK checkout
 inputs:
   flutter_path:
     required: true
-    description: "the absolute path to flock"
+    description: Absolute SDK checkout path or path relative to the workflow workspace
 
 runs:
-  using: "composite"
+  using: composite
   steps:
-    - name: Setup Python
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
 
-    - name: Setup Android Tools
+    - name: Set up Android tools
       shell: bash
-      run: |
-        sudo apt-get install android-tools-adb
+      if: runner.os == 'Linux'
+      run: sudo apt-get install android-tools-adb
 
-    - name: Run Tests
+    - name: Run tests
       shell: bash
+      env:
+        FLUTTER_PATH: ${{ inputs.flutter_path }}
+        WORKSPACE: ${{ github.workspace }}
       run: |
-        PATH="$PATH:`pwd`/${{inputs.flutter_path}}/bin"
-        flutter update-packages
-        cd ${{inputs.flutter_path}}/packages/flutter
-        flutter test
+        set -euo pipefail
+        if [[ "$FLUTTER_PATH" != /* ]]; then
+          FLUTTER_PATH="$WORKSPACE/$FLUTTER_PATH"
+        fi
+        FLUTTER_PATH=$(cd "$FLUTTER_PATH" && pwd)
+        "$FLUTTER_PATH/bin/flutter" update-packages
+        cd "$FLUTTER_PATH/packages/flutter"
+        "$FLUTTER_PATH/bin/flutter" test
