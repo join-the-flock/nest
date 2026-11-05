@@ -50,6 +50,22 @@ dart run nest_patches/bin/git_export_patches.dart -p patches --channel stable --
 dart run nest_patches/bin/git_export_patches.dart -p patches --channel stable
 ```
 
+Import refuses an existing assembled history by default. To reassemble from the
+recorded upstream revision, export changes you want to keep and run:
+
+```sh
+dart run nest_patches/bin/git_import_patches.dart \
+  --flutter flock --patches-dir patches --channel master --reset
+```
+
+Reset validates patch syntax and metadata, requires a clean checkout, preserves
+old commits under a printed backup reference, and attempts to reapply the patches.
+If application fails, it restores the recorded upstream base with no patches
+applied and reports the failure. It keeps ignored SDK caches and does not update
+Flutter's upstream revision. See the
+[package reset instructions](nest_patches/README.md#resetting-an-existing-assembly)
+for requirements and recovery commands.
+
 Both commands accept `--flutter /path/to/sdk` to select a different Flutter
 checkout, and `--manifest .patches-stable` is equivalent to `--channel stable`.
 Channel collections require an explicit selection. Legacy repositories with only
