@@ -65,6 +65,24 @@ imports without `--reset` retain their existing manual conflict-recovery behavio
 A clone without the private upstream reference cannot use `--reset`; start from
 a fresh upstream checkout and import once to establish the base.
 
+## Generated engine pins
+
+For Flutter checkouts, import pins the upstream engine before applying patches.
+It runs the tracked `bin/internal/update_engine_version.sh` with inherited engine
+and realm overrides cleared. A generated pin is force-added (Flutter ignores
+this file by default) and committed with `Nest-Engine-Pin: true`. That commit
+becomes `refs/patches/upstream-head`, so exports start after it and reset keeps
+it. Existing upstream pins are reused without a generated commit. Generic Git
+repositories without Flutter's tracked script retain their existing behavior.
+Repair selects a new pin from its fetched target before replaying patches.
+
+The engine version file is generated metadata: export omits it even in explicit
+ranges or when it has been folded into a published patch commit. Nest's
+`publish-fork` action uses `git_publication_revision.dart` to construct the same
+SDK tree without the standalone local pin commits in published ancestry. It
+never rewrites the development checkout. See Nest's engine-pin documentation
+for publication restrictions and custom engine selection.
+
 ## Replacing complete files
 
 Add a `Patch-Replace-File: README.md` trailer to the commit that should own the

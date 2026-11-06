@@ -1,7 +1,9 @@
 name: Publish Fork
 description: >-
   Force-push an assembled checkout to the selected fork branch, replacing
-  the destination branch's history and contents.
+  the destination branch's history and contents. Generated local engine-pin
+  commits are folded into patch commits while preserving the validated SDK tree.
+  Requires standalone Dart to be set up by the caller.
 inputs:
   fork_path:
     required: true
@@ -16,13 +18,20 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Resolve publication tooling dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../../nest_patches
+      run: dart pub get --enforce-lockfile
+
     - name: Push to destination
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.fork_path }}
       env:
+        PUBLICATION_TOOL: ${{ github.action_path }}/../../../nest_patches/bin/git_publication_revision.dart
         DESTINATION_REPO: ${{ inputs.destination_repo }}
         DESTINATION_BRANCH: ${{ inputs.destination_branch }}
       run: |
         set -euo pipefail
+        PUBLICATION_REVISION=$(dart run "$PUBLICATION_TOOL" --flutter "$PWD")
         git remote add destination "https://github.com/$DESTINATION_REPO"
-        git push --force destination "HEAD:refs/heads/$DESTINATION_BRANCH"
+        git push --force destination "$PUBLICATION_REVISION:refs/heads/$DESTINATION_BRANCH"

@@ -29,6 +29,8 @@ import 'patch_collection.dart';
 import 'patch_protocol.dart';
 
 part 'patch_repair.dart';
+part 'engine_pin.dart';
+part 'publication.dart';
 
 const upstreamHead = 'refs/patches/upstream-head';
 
@@ -61,7 +63,7 @@ Future<void> importPatches(String repository, String patchData,
   }
   final extended = mails
       .any((mail) => mail.files.any((file) => file.replacementMode != null));
-  final base = reset ? recorded! : head;
+  var base = reset ? recorded! : head;
   final destinations = <String>{};
   if (reset) await _validateResetPatches(repository, mails, destinations);
   String? backup;
@@ -80,6 +82,7 @@ Future<void> importPatches(String repository, String patchData,
     await git(repository, ['reset', '--hard', base]);
   }
   try {
+    base = await pinEngine(repository);
     if (extended) {
       patchData =
           await _prepareReplacements(repository, mails, threeway: threeway);
@@ -513,14 +516,34 @@ Future<List<List<String>>> _formatPatchSeries(
     '--no-signature',
     '--always',
     '--full-index',
-    range
+    range,
   ]);
-  // format-patch normally omits empty commits. Keep only those that carry
-  // replacement intent, since an unchanged image still needs to be exported.
-  return splitPatches(data).where((patch) {
+  // Keep the unfiltered commit walk: Git pathspec filtering drops empty
+  // commits, which can still carry complete-file replacement intent.
+  final result = <List<String>>[];
+  for (final patch in splitPatches(data)) {
     final mail = PatchMail.parse(patch);
-    return mail.files.isNotEmpty || mail.replacementPaths.isNotEmpty;
-  }).toList();
+    if (mail.replacementPaths.contains(_engineVersionPath)) {
+      throw FormatException(
+          '$_engineVersionPath is generated metadata and cannot be a replacement patch');
+    }
+    final files = <PatchFile>[];
+    for (final file in mail.files) {
+      final header = file.lines.first.trimRight();
+      if (header == 'diff --git a/$_engineVersionPath b/$_engineVersionPath')
+        continue;
+      if (header.startsWith('diff --git a/$_engineVersionPath ') ||
+          header.endsWith(' b/$_engineVersionPath')) {
+        throw FormatException(
+            'Cannot export a rename involving $_engineVersionPath');
+      }
+      files.add(file);
+    }
+    if (files.isNotEmpty || mail.replacementPaths.isNotEmpty) {
+      result.add([...mail.message, for (final file in files) ...file.lines]);
+    }
+  }
+  return result;
 }
 
 /// Plan the whole series using an isolated index. The checkout and real index

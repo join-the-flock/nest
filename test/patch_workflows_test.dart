@@ -80,6 +80,23 @@ void main() {
       });
     });
 
+    test(
+        'custom engine publication waits for builds and uses the shared pin tool',
+        () {
+      final jobs =
+          _workflow('build-and-upload-flock-engine-variants.yaml')['jobs']
+              as YamlMap;
+      final publish = jobs['push-build'] as YamlMap;
+      final builds = jobs.keys.where((name) => name != 'push-build').toSet();
+      expect((publish['needs'] as YamlList).toSet(), builds);
+      final steps = (publish['steps'] as YamlList).cast<YamlMap>();
+      final pin =
+          steps.singleWhere((step) => step['name'] == 'save engine hash');
+      expect(pin['run'], contains('git_pin_engine.dart'));
+      expect(pin['run'], isNot(contains('git commit')));
+      expect((pin['env'] as YamlMap)['ENGINE_VERSION'], r'${{ github.sha }}');
+    });
+
     test('engine builds select an official Flutter channel', () {
       final environment =
           _workflow('build-and-upload-flock-engine-variants.yaml')['env']

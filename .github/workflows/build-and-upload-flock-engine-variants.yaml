@@ -648,7 +648,13 @@ jobs:
 
   # after we build the engine successfully, it's ok to push our branch
   push-build:
-    # needs: build-engine-ios
+    needs:
+      - build-engine-web
+      - build-engine-android
+      - build-engine-linux
+      - build-engine-mac
+      - build-engine-ios
+      - build-ios-release
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -677,16 +683,14 @@ jobs:
           patches_manifest: .patches-${{ env.FLUTTER_BRANCH }}
           token: ${{ secrets.REPO_WORKFLOW_PAT }}
 
-      # Compute an engine version hash so the flutter tool will be able to find a precompiled engine
+      # Keep the custom engine selection local; publish-fork folds this pin
+      # into the release history without publishing its standalone commit.
       - name: save engine hash
-        shell: bash
+        env:
+          ENGINE_VERSION: ${{ github.sha }}
         run: |
-          cd flock
-          echo "${{ github.sha }}" > ./bin/internal/engine.version
-          git add -f ./bin/internal/engine.version
-          git config --global user.email "no-reply@getflocked.dev"
-          git config --global user.name "Flock"
-          git commit -m "save engine version" --allow-empty
+          set -euo pipefail
+          dart run nest_patches/bin/git_pin_engine.dart --flutter flock --engine-version "$ENGINE_VERSION"
 
       - name: update our remote flock branch to use this engine hash
         uses: ./.github/actions/publish-fork

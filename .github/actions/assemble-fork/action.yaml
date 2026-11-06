@@ -1,7 +1,9 @@
 name: Assemble Fork
 description: >-
-  Check out an upstream Flutter revision into the configured fork directory and
-  apply an ordered patch collection. Requires Dart to be set up by the calling workflow.
+  Check out upstream Flutter, commit a local engine pin, then apply an ordered
+  patch collection. The generated pin is excluded from patch export and its
+  standalone commit is omitted by publish-fork. Requires Dart to be set up by
+  the calling workflow.
 inputs:
   flutter_ref:
     required: true
@@ -93,16 +95,14 @@ runs:
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.fork_path }}
       env:
+        ENGINE_PIN_TOOL: ${{ github.action_path }}/../../../nest_patches/bin/git_pin_engine.dart
         GIT_USER_NAME: ${{ inputs.git_user_name }}
         GIT_USER_EMAIL: ${{ inputs.git_user_email }}
       run: |
         set -euo pipefail
         git config user.name "$GIT_USER_NAME"
         git config user.email "$GIT_USER_EMAIL"
-        ./bin/internal/update_engine_version.sh
-        cp ./bin/cache/engine.stamp ./bin/internal/engine.version
-        git add -f ./bin/internal/engine.version
-        git commit -m "save engine version" --allow-empty
+        dart run "$ENGINE_PIN_TOOL" --flutter "$PWD"
 
     - name: Apply fork patches
       shell: bash
