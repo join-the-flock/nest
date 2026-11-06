@@ -118,7 +118,7 @@ void main() {
       _write('${sdk.path}/.gitignore', 'bin/cache/\n');
       _write('${sdk.path}/base.txt', 'base\n');
       _write('${sdk.path}/bin/internal/update_engine_version.sh',
-          '#!/bin/sh\nmkdir -p bin/cache\nprintf "pinned-engine\\n" > bin/cache/engine.stamp\n');
+          '#!/bin/sh\nmkdir -p bin/cache\nprintf "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\n" > bin/cache/engine.stamp\n');
       await _executable('${sdk.path}/bin/internal/update_engine_version.sh');
       await _commit(sdk, 'Base');
       final patches = Directory('${root.path}/${inputs['patches_path']}')
@@ -144,7 +144,7 @@ new file mode 100644
       expect(await _git(sdk, ['config', '--local', 'user.name']),
           'Example Maintainer');
       expect(File('${sdk.path}/bin/internal/engine.version').readAsStringSync(),
-          'pinned-engine\n');
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n');
       final engineCommit = await _git(sdk, ['rev-parse', 'HEAD']);
       await _run('assemble-fork', 'Apply fork patches', root, inputs);
       expect(File('${sdk.path}/feature.txt').readAsStringSync(), 'feature\n');
@@ -153,6 +153,32 @@ new file mode 100644
       expect(await _git(sdk, ['log', '-1', '--format=%cn <%ce>']),
           'Example Maintainer <maintainer@example.invalid>');
       expect(await _git(sdk, ['status', '--porcelain']), isEmpty);
+      final localHead = await _git(sdk, ['rev-parse', 'HEAD']);
+      final remote = Directory('${root.path}/assembled-remote.git')
+        ..createSync();
+      await _git(remote, ['init', '--bare', '-q']);
+      await _git(sdk, [
+        'config',
+        'url.${remote.uri}.insteadOf',
+        'https://github.com/example/assembled'
+      ]);
+      await _run('publish-fork', 'Push to destination', root, {
+        'fork_path': 'custom sdk',
+        'destination_repo': 'example/assembled',
+        'destination_branch': 'master',
+      });
+      final release = await _git(remote, ['rev-parse', 'refs/heads/master']);
+      expect(await _git(remote, ['rev-parse', '$release^{tree}']),
+          await _git(sdk, ['rev-parse', '$localHead^{tree}']));
+      expect(await _git(remote, ['log', '--format=%B', release]),
+          isNot(contains('Nest-Engine-Pin: true')));
+      expect(
+          (await Process.run(
+                  'git', ['-C', remote.path, 'cat-file', '-e', engineCommit]))
+              .exitCode,
+          isNot(0),
+          reason: 'The local pin commit must not be transferred');
+      expect(await _git(sdk, ['rev-parse', 'HEAD']), localHead);
     });
 
     for (final absolute in [false, true]) {

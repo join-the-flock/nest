@@ -91,7 +91,8 @@ checkout, and `--manifest .patches-stable` is equivalent to `--channel stable`.
 Channel collections require an explicit selection outside an active repair.
 Legacy repositories with only
 `.patches` continue working without either option. Import records the included
-upstream revision at `refs/patches/upstream-head` for subsequent exports.
+patch base at `refs/patches/upstream-head` for subsequent exports. For Flutter
+checkouts, this base includes a generated local engine-pin commit, described below.
 
 Export replaces the selected manifest with the exported history in order. It
 preserves filenames recorded in imported commits, including adaptation dates.
@@ -135,7 +136,7 @@ Nest's shared actions accept fork-specific settings from their callers:
 | --- | --- |
 | `assemble-fork` | Required: `fork_path`, `flutter_ref`, `patches_repo`, `git_user_name`, `git_user_email`. Optional: `flutter_repo` (defaults to `flutter/flutter`), `patches_path` (`patches`), `patches_ref` (`main`), `patches_manifest` (`.patches`), `fetch_depth` (`0`), and `token` (the workflow token). |
 | `build-and-upload-engine` | Required: `fork_path`, `gclient`, `config_name`, `engine_version`. Optional: `gcp_bucket`, and base64-encoded `gcp_credentials`. An empty bucket builds without uploading. |
-| `publish-fork` | Required: `fork_path`, `destination_repo`, and `destination_branch`. It force-pushes the selected checkout's HEAD to the destination branch. |
+| `publish-fork` | Required: `fork_path`, `destination_repo`, and `destination_branch`. It force-pushes a publication revision with the same SDK tree, folding local engine-pin commits into patch commits. |
 | `run-framework-tests` | Required: `flutter_path`, an absolute SDK path or a path relative to the workflow workspace. Tests invoke that SDK directly. |
 
 Action definitions live under `.github/actions/<action>/action.yaml`. Paths for
@@ -153,6 +154,44 @@ another repository. Engine builds read the named `.gclient` file from the SDK's
 `engine/scripts/` directory and upload into the standard Flutter engine artifact
 layout within the supplied GCS bucket. Linux disk cleanup uses the runner OS;
 it does not require the caller to define a particular matrix.
+
+## Engine pins in local development and releases
+
+Flutter selects downloaded engine artifacts using the tracked
+`bin/internal/engine.version` file. Import and repair automatically select the
+upstream engine before applying fork patches and, when needed, create a local
+commit marked `Nest-Engine-Pin: true`. An existing upstream stable/beta pin is
+preserved. Inherited `FLUTTER_PREBUILT_ENGINE_VERSION` and `FLUTTER_REALM`
+overrides are cleared during selection. Framework development commits keep
+using this pin; rebuilding native engine changes is a separate operation.
+
+The generated commit is the recorded patch base, so reset/reapply preserves it.
+Export also excludes `bin/internal/engine.version` from explicit ranges and
+published histories. Treat this path as generated SDK metadata, not a patch.
+The pinning step requires a clean checkout and configured local Git identity.
+For an explicit custom engine selection, run:
+
+```sh
+dart run nest_patches/bin/git_pin_engine.dart \
+  --flutter flock --engine-version <published-engine-identifier>
+```
+
+`assemble-fork` uses that same pinning tool. `publish-fork` constructs a separate
+linear publication history: it omits generated pin commits and folds their file
+contents into patch commits. The complete published tree is checked against the
+validated local tree, including the pinned engine file. Constructing this
+revision leaves local HEAD, index, and refs unchanged; the action then pushes
+only that revision. Patch authors, messages, and dates are retained; commit IDs
+change because their parents change. A trailing custom-engine pin is folded into
+the last patch commit. Histories with merges after a generated pin, marker
+commits containing unrelated changes, active repair sessions, dirty worktrees,
+or no patch commits are refused before pushing. Upstream release-pin commits
+are ordinary upstream history and remain untouched.
+
+The custom-engine example waits for all engine build jobs before publishing,
+and selects its engine through this same tool. This does not validate or change
+its artifact hosting/layout; engine builds still need a complete downloadable
+artifact set at the SDK's configured storage location.
 
 ## Daily rebase and publication for your fork
 
@@ -197,7 +236,7 @@ if validation passes. A failure leaves that channel's existing remote branch
 in place; the other channels can still publish if they pass.
 
 Validation uses the assembled SDK's `bin/flutter` directly. It checks that the
-SDK starts, reports the assembled revision and expected channel, and uses the
+SDK starts, reports the local assembled revision and expected channel, and uses the
 pinned engine. It then resolves dependencies for `join-the-flock/flock-demo`,
 runs its analysis and widget tests, and builds it for web in release mode. It also
 checks that validation did not change the assembled revision or tracked files.

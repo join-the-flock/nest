@@ -157,7 +157,10 @@ Future<void> startPatchRepair(String repository, String directory,
   stdout.writeln('Repairing $selection against origin/$channel ($target).');
   stdout.writeln('Saved starting history at $backup');
   await git(repository, ['reset', '--hard', target]);
-  await git(repository, ['update-ref', upstreamHead, target]);
+  final pinned = await pinEngine(repository);
+  await git(repository, ['update-ref', upstreamHead, pinned]);
+  state['onto'] = pinned;
+  state['before'] = pinned;
   state['phase'] = 'applying';
   await _saveRepair(session, state);
   await _advanceRepair(session, state);
